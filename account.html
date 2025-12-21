@@ -4,10 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜我的帳戶</title>
+
+  <!-- ✅ CSS 順序：theme → style -->
+  <link rel="stylesheet" href="./assets/theme.css">
   <link rel="stylesheet" href="./assets/style.css" />
+
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link rel="stylesheet" href="assets/theme.css">
 </head>
+
 <body>
   <div class="bg-float"></div>
 
@@ -82,12 +86,30 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="./assets/app.js"></script>
+  <script src="./assets/app.js" defer></script>
+
   <script>
-    window.addEventListener("load", ()=>{
+    function waitForMBReady(timeoutMs = 6000){
+      const start = Date.now();
+      return new Promise((resolve)=>{
+        const tick = ()=>{
+          if(window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
+          if(Date.now() - start > timeoutMs) return resolve(false);
+          setTimeout(tick, 80);
+        };
+        tick();
+      });
+    }
+
+    window.addEventListener("load", async ()=>{
+      await waitForMBReady();
+
       const info = document.getElementById("accInfo");
-      if(MB.state.mode === "user"){
-        info.innerHTML = `✅ 已登入<br>暱稱：<b>${MB.state.user.name || MB.state.user.email || ""}</b>`;
+      const isUser = (MB.state.mode === "user" && MB.state.user);
+
+      if(isUser){
+        const nm = MB.state.user.name || MB.state.user.email || "";
+        info.innerHTML = `✅ 已登入<br>暱稱：<b>${nm}</b>`;
       }else{
         info.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才可查看：我的貼文 / 已按讚貼文`;
       }
@@ -95,6 +117,14 @@
       document.getElementById("btnGoRecords").addEventListener("click", ()=>{
         if(!MB_requireLogin("我的紀錄")) return;
         location.href = "records.html";
+      });
+
+      // ✅ 訪客按鈕：關 modal + 保持 guest（不要卡住）
+      document.getElementById("btnGuest")?.addEventListener("click", ()=>{
+        localStorage.setItem("mode","guest");
+        // 關閉 loginModal（app.js 有 closeLoginModal，但沒曝光，我們用 class 移除）
+        document.getElementById("loginModal")?.classList.remove("is-open");
+        toast("已用訪客模式瀏覽帳戶");
       });
     });
   </script>
