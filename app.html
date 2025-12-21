@@ -177,6 +177,23 @@
         setTab(b.dataset.tab);
       });
     });
+    
+    // Theme toggle (dark/light)
+(function initTheme(){
+  const key = "moviebase_theme";
+  const saved = localStorage.getItem(key) || "dark";
+  document.documentElement.dataset.theme = saved;
+
+  const btn = document.getElementById("themeToggle");
+  if(!btn) return;
+
+  btn.addEventListener("click", () => {
+    const next = (document.documentElement.dataset.theme === "dark") ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem(key, next);
+  });
+})();
+
   </script>
 </body>
 </html>
