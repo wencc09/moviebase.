@@ -401,6 +401,46 @@
         50%{ opacity:.95; transform: translateY(-2px); }
       }
 
+          /* ===== Identity chooser inside modal ===== */
+      .idGrid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px){
+        .idGrid{ grid-template-columns: 1fr; }
+      }
+      .bigChoice{
+        width:100%;
+        padding: 14px 14px;
+        border-radius: 16px;
+        border: 1px solid var(--stroke);
+        background: rgba(255,255,255,.06);
+        color: rgba(255,255,255,.92);
+        cursor:pointer;
+        text-align:left;
+      }
+      .bigChoice:hover{ background: rgba(255,255,255,.10); }
+      .bigChoice b{
+        display:block;
+        font-family:"Sora","Noto Sans TC",sans-serif;
+        letter-spacing:.2px;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+      .bigChoice span{
+        display:block;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .bigChoice.primary{
+        border-color: rgba(0,213,255,.30);
+        box-shadow: 0 0 0 4px rgba(0,213,255,.10);
+      }
+      .hidden{ display:none !important; }
+
+
   </style>
 </head>
 
@@ -562,17 +602,40 @@
         <button class="btn" id="modalClose" type="button">關閉</button>
       </div>
 
-      <div class="modalBody">
-        <div class="gsiWrap">
-          <div id="gsiBtn"></div>
-          <div class="hint" style="margin-top:8px;">
-            若你已成功登入過，會在其他頁面顯示登入狀態；本入口不會自動跳轉。
+            <div class="modalBody">
+        <!-- Step 1: 身分選擇 -->
+        <div id="chooseBox" class="gsiWrap">
+          <div class="hint" style="margin-bottom:10px;">
+            先選擇身分：登入可紀錄與發文；訪客只能瀏覽。
+          </div>
+      
+          <div class="idGrid">
+            <button class="bigChoice primary" id="chooseLogin" type="button">
+              <b>登入</b>
+              <span>可新增/編輯紀錄、上傳照片、在貼文牆互動</span>
+            </button>
+      
+            <button class="bigChoice" id="chooseGuest" type="button">
+              <b>訪客</b>
+              <span>只能瀏覽，不可寫入資料（按讚/留言/新增都會鎖）</span>
+            </button>
           </div>
         </div>
-
+      
+        <!-- Step 2: Google 登入（按登入才顯示） -->
+        <div id="googleBox" class="gsiWrap hidden">
+          <div class="hint" style="margin-bottom:10px;">
+            使用 Google 登入以啟用完整功能
+          </div>
+          <div id="gsiBtn"></div>
+      
+          <div class="rowBtns" style="margin-top:10px;">
+            <button class="btn" id="backToChoose" type="button">返回身分選擇</button>
+          </div>
+        </div>
+      
         <div class="rowBtns">
           <button class="btn" type="button" onclick="location.href='about.html'">閱讀詳細介紹</button>
-          <button class="btn" type="button" onclick="location.href='hall.html?mode=guest'">改用訪客進入</button>
         </div>
       </div>
     </div>
