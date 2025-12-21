@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MovieBase｜入口</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    :root{
+      --bg:#070A12;
+      --card:rgba(14,20,40,.62);
+      --line:rgba(255,255,255,.10);
+      --text:#e8ecff;
+      --muted:rgba(232,236,255,.72);
+      --neon:#22d3ee;
+      --neon2:#a78bfa;
+      --ok:#34d399;
+      --err:#fb7185;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background:
+        radial-gradient(900px 500px at 20% 20%, rgba(167,139,250,.25), transparent 55%),
+        radial-gradient(900px 600px at 85% 35%, rgba(34,211,238,.18), transparent 55%),
+        radial-gradient(700px 500px at 60% 90%, rgba(34,211,238,.08), transparent 60%),
+        var(--bg);
+      overflow-x:hidden;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:24px 16px 44px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{
+      width:38px;height:38px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(34,211,238,.8), rgba(167,139,250,.9));
+      box-shadow: 0 12px 40px rgba(34,211,238,.18);
+      position:relative; overflow:hidden;
+    }
+    .logo:after{
+      content:""; position:absolute; inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+      transform: rotate(25deg);
+      animation: sweep 2.6s infinite ease-in-out;
+      opacity:.55;
+    }
+    @keyframes sweep{ 0%{transform:translateX(-40%) rotate(25deg)} 60%{transform:translateX(140%) rotate(25deg)} 100%{transform:translateX(140%) rotate(25deg)} }
+    .title{font-weight:900;letter-spacing:.4px;font-size:18px;margin:0}
+    .sub{margin:0;color:var(--muted);font-size:12px}
+
+    .hero{
+      position:relative;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(14,20,40,.72), rgba(10,14,28,.52));
+      border-radius:24px;
+      padding:18px;
+      overflow:hidden;
+    }
+    .heroGrid{
+      display:grid; gap:14px;
+      grid-template-columns: 1.1fr .9fr;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){
+      .heroGrid{grid-template-columns:1fr}
+    }
+
+    .panel{
+      border:1px solid var(--line);
+      background: rgba(6,10,20,.35);
+      border-radius:20px;
+      padding:16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.28);
+    }
+
+    .big{font-size:clamp(18px, 2.2vw, 26px); font-weight:900; margin:0 0 8px}
+    .desc{color:var(--muted); font-size:13px; line-height:1.7; margin:0}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .chip{
+      font-size:12px; padding:7px 10px; border-radius:999px;
+      border:1px solid var(--line); background: rgba(255,255,255,.04);
+      color:var(--muted);
+    }
+
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px; border-radius:14px;
+      cursor:pointer;
+      transition:.15s transform, .15s box-shadow, .15s border-color;
+      font-weight:700;
+    }
+    .btn:hover{transform:translateY(-1px); border-color: rgba(34,211,238,.35); box-shadow: 0 0 0 4px rgba(34,211,238,.10);}
+    .btn.primary{
+      border-color: rgba(34,211,238,.5);
+      background: linear-gradient(135deg, rgba(34,211,238,.25), rgba(167,139,250,.18));
+    }
+
+    .status{margin-top:10px;font-size:12px;color:var(--muted)}
+    .ok{color:var(--ok)}
+    .err{color:var(--err)}
+
+    /* Floating “screen light” */
+    .glow{
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(34,211,238,.18), transparent 45%),
+                  radial-gradient(circle at 70% 55%, rgba(167,139,250,.16), transparent 50%);
+      filter: blur(30px);
+      opacity:.9;
+      animation: drift 9s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes drift{
+      0%{transform:translate(0,0) scale(1)}
+      50%{transform:translate(2%,3%) scale(1.03)}
+      100%{transform:translate(0,0) scale(1)}
+    }
+
+    /* Mobile-friendly bottom hint */
+    .hint{margin-top:12px; color:var(--muted); font-size:12px}
+    .userBox{display:none; gap:10px; align-items:center; margin-top:12px}
+    .pic{width:34px;height:34px;border-radius:999px;border:1px solid var(--line)}
+    .small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <p class="title">MovieBase</p>
+          <p class="sub">漂浮影廳 × 觀影日記</p>
+        </div>
+      </div>
+      <div class="chip">RWD ✅</div>
+    </div>
+
+    <div class="hero">
+      <div class="glow"></div>
+
+      <div class="heroGrid">
+        <div class="panel">
+          <h1 class="big">把你的觀影進度、心情、票根，<br>變成一座漂浮影廳。</h1>
+          <p class="desc">
+            你可以用 Google 登入建立「我的紀錄」，也可以先用訪客模式逛貼文牆。
+            之後會有：影集進度、多則備忘錄、電影院票根、貼文牆 hashtag 搜尋、通知小鈴噹。
+          </p>
+
+          <div class="chips">
+            <div class="chip">影集 / 動漫：季＋集＋時間</div>
+            <div class="chip">電影：觀看中秒數</div>
+            <div class="chip">電影院：票根＋照片</div>
+            <div class="chip">漂浮影廳：hashtag</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn" id="btnGuest" type="button">以訪客模式進入</button>
+            <div id="gsiBtn"></div>
+          </div>
+
+          <div class="userBox" id="userBox">
+            <img id="userPic" class="pic" alt="">
+            <div>
+              <div id="userName" style="font-weight:900"></div>
+              <div class="small" id="userEmail"></div>
+            </div>
+            <a class="btn primary" href="./app.html" style="text-decoration:none;">進入 MovieBase ➜</a>
+          </div>
+
+          <div class="status" id="status"></div>
+          <div class="hint">手機也能正常顯示（之後主站會做「手機底部導覽列」）</div>
+        </div>
+
+        <div class="panel">
+          <div class="chip" style="display:inline-flex;gap:8px;align-items:center;">
+            <span>🎞️</span><span>登入測試</span>
+          </div>
+          <p class="desc" style="margin-top:10px">
+            這頁先完成：<b>Google 登入 → 拿到 ID Token → 丟給 Apps Script 驗證</b><br>
+            成功後才進入主站做四分頁與資料寫入試算表。
+          </p>
+          <div class="chips" style="margin-top:12px">
+            <div class="chip">不再 origin_mismatch</div>
+            <div class="chip">前後端分離</div>
+            <div class="chip">作品集感</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ 你要改的兩個地方：
+    const GOOGLE_CLIENT_ID = "貼上你的 OAuth Client ID（.apps.googleusercontent.com）";
+    const GAS_WEBAPP_URL = "貼上你的 Apps Script /exec 網址";
+
+    const $ = (id) => document.getElementById(id);
+    function setStatus(msg, type=""){
+      const el = $("status");
+      el.className = "status " + (type || "");
+      el.textContent = msg || "";
+    }
+
+    async function apiPOST(payload){
+      const res = await fetch(GAS_WEBAPP_URL, {
+        method: "POST",
+        headers: {"Content-Type":"text/plain;charset=utf-8"},
+        body: JSON.stringify(payload),
+      });
+      return await res.json();
+    }
+
+    function showLoggedIn(user){
+      $("userBox").style.display = "flex";
+      $("userName").textContent = user.name || "";
+      $("userEmail").textContent = user.email || "";
+      if (user.picture) $("userPic").src = user.picture;
+      $("gsiBtn").style.display = "none";
+    }
+
+    function showLoggedOut(){
+      $("userBox").style.display = "none";
+      $("gsiBtn").style.display = "block";
+    }
+
+    async function restoreLogin(){
+      const idToken = localStorage.getItem("id_token");
+      if (!idToken) return showLoggedOut();
+
+      setStatus("驗證登入中…");
+      try{
+        const data = await apiPOST({ action:"me", idToken });
+        if (!data.ok) throw new Error(data.error || "me failed");
+        showLoggedIn(data.user);
+        setStatus("登入成功 ✅", "ok");
+      }catch(e){
+        console.error(e);
+        localStorage.removeItem("id_token");
+        showLoggedOut();
+        setStatus("登入驗證失敗（請確認 GAS /exec 與 Client ID）", "err");
+      }
+    }
+
+    function initGoogleLogin(){
+      const tick = setInterval(()=>{
+        if (!window.google?.accounts?.id) return;
+        clearInterval(tick);
+
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (resp) => {
+            localStorage.setItem("id_token", resp.credential);
+            await restoreLogin();
+          }
+        });
+        google.accounts.id.renderButton($("gsiBtn"), { theme:"outline", size:"large" });
+
+        restoreLogin();
+      }, 50);
+    }
+
+    window.addEventListener("load", ()=>{
+      $("btnGuest").addEventListener("click", ()=>{
+        localStorage.removeItem("id_token");
+        setStatus("訪客模式 ✅（先不開放紀錄功能），可直接進主站看貼文牆。", "ok");
+        location.href = "./app.html?mode=guest";
+      });
+
+      initGoogleLogin();
+    });
+  </script>
+</body>
+</html>
