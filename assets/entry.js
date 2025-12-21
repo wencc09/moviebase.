@@ -2,124 +2,75 @@
 (function () {
   const $ = (s) => document.querySelector(s);
 
-  const state = {
-    step: 0,
-    steps: [
-      {
-        k: "定位",
-        t: "把觀影進度、心情與票根收進同一個宇宙",
-        d: "用卡片式紀錄你的影集、電影與動畫；一眼看懂最近看了什麼、喜歡什麼。"
-      },
-      {
-        k: "互動",
-        t: "貼文牆分享心得，但訪客只能看",
-        d: "登入後才能發文與紀錄；訪客模式只提供瀏覽，避免亂寫入資料。"
-      },
-      {
-        k: "資料",
-        t: "前端 GitHub Pages，後端 Apps Script + Sheet",
-        d: "照片可存雲端，資料結構固定，之後好擴充留言、按讚、追蹤。"
-      }
-    ]
-  };
-
-  function setStep(i) {
-    state.step = (i + state.steps.length) % state.steps.length;
-    const s = state.steps[state.step];
-    $("#stepK").textContent = s.k;
-    $("#stepT").textContent = s.t;
-    $("#stepD").textContent = s.d;
-
-    // progress
-    const p = ((state.step + 1) / state.steps.length) * 100;
-    $("#bar").style.width = `${p}%`;
-
-    // dots
-    document.querySelectorAll("[data-dot]").forEach((el, idx) => {
-      el.classList.toggle("is-on", idx === state.step);
-    });
-  }
+  const SPLASH_DURATION_MS = 4200; // 小動畫時間（可調）
+  const TO_APP_URL = "app.html#about"; // 動畫結束自動到網站介紹
 
   function openModal() {
-    $("#modal").classList.add("open");
-    $("#modal").setAttribute("aria-hidden", "false");
-  }
-  function closeModal() {
-    $("#modal").classList.remove("open");
-    $("#modal").setAttribute("aria-hidden", "true");
+    const m = $("#modal");
+    if (!m) return;
+    m.classList.add("open");
+    m.setAttribute("aria-hidden", "false");
   }
 
-  function setRole(role) {
-    localStorage.setItem("mb_role", role); // guest | user
+  function hideSplash() {
+    const splash = $("#splash");
+    if (!splash) return;
+    splash.classList.add("is-hide");
+    // 讓淡出動畫跑完再真的隱藏（避免點擊穿透）
+    setTimeout(() => {
+      splash.style.display = "none";
+      splash.setAttribute("aria-hidden", "true");
+    }, 520);
   }
 
-  function goNext() {
-    setStep(state.step + 1);
-  }
-  function goPrev() {
-    setStep(state.step - 1);
-  }
-
-  // Guest -> 只設定 guest 標記，導向 hall.html（主入口）
-  function enterGuest() {
-    setRole("guest");
-    location.href = "hall.html?mode=guest";
+  function goToAppAbout() {
+    hideSplash();
+    // 給淡出一點時間再跳，視覺更順
+    setTimeout(() => {
+      location.href = TO_APP_URL;
+    }, 260);
   }
 
-  // Login -> 打開 modal，讓使用者自己按 Google 按鈕（不自動彈）
-  function enterLogin() {
-    setRole("user");
-    openModal();
-  }
+  function initSplashFlow() {
+    const splash = $("#splash");
+    if (!splash) return;
 
-  // Intro 不要太快彈登入：只做「淡入」，不做「自動彈窗」
-  function introAutoPlay() {
+    let done = false;
     let timer = null;
-    const start = () => {
-      stop();
-      timer = setInterval(() => setStep(state.step + 1), 5200);
-    };
-    const stop = () => {
-      if (timer) clearInterval(timer);
-      timer = null;
+
+    const finishToApp = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      goToAppAbout();
     };
 
-    const box = $("#introBox");
-    box.addEventListener("mouseenter", stop);
-    box.addEventListener("mouseleave", start);
-    start();
+    const skipToLogin = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      // 依你規格：按 skip 不看動畫，直接彈登入/訪客（你的 modal 目前是登入視窗）
+      // 如果你之後要「登入/訪客選擇」我也能把 modal 改成兩顆按鈕
+      hideSplash();
+      setTimeout(openModal, 260);
+    };
+
+    // 1) 時間到自動進網站介紹
+    timer = setTimeout(finishToApp, SPLASH_DURATION_MS);
+
+    // 2) 點一下畫面 -> 直接進網站介紹
+    splash.addEventListener("click", finishToApp);
+
+    // 3) SKIP -> 直接彈登入
+    $("#btnSkip")?.addEventListener("click", skipToLogin);
+
+    // 4) ESC -> 也算 skip（可要可不要）
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") skipToLogin(e);
+    });
   }
 
   function init() {
-    setStep(0);
-    introAutoPlay();
-
-    $("#btnNext").addEventListener("click", goNext);
-    $("#btnPrev").addEventListener("click", goPrev);
-
-    $("#btnGuest").addEventListener("click", enterGuest);
-    $("#btnLogin").addEventListener("click", enterLogin);
-
-    $("#modalClose").addEventListener("click", closeModal);
-    $("#modal").addEventListener("click", (e) => {
-      if (e.target.id === "modal") closeModal();
-    });
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeModal();
-    });
-
-    // 導向介紹區
-    $("#btnAbout").addEventListener("click", () => {
-      document.getElementById("sectionAbout").scrollIntoView({ behavior: "smooth" });
-    });
-
-    // 如果已登入（你之前已成功登入），入口直接顯示狀態，但不自動跳走
-    const name = localStorage.getItem("mb_user_name");
-    if (name) {
-      $("#loginState").textContent = `目前：已登入（${name}）`;
-    } else {
-      $("#loginState").textContent = "目前：未登入";
-    }
+    initSplashFlow();
   }
 
   window.addEventListener("load", init);
