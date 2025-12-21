@@ -4,11 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜漂浮影廳</title>
-  <link rel="stylesheet" href="./assets/style.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link rel="stylesheet" href="assets/theme.css">
 
+  <!-- ✅ 先載入 theme（提供變數/共用元件風格） -->
+  <link rel="stylesheet" href="./assets/theme.css">
+  <!-- ✅ 再載入你的頁面樣式（最好都用 var(--bg/--text/--stroke)） -->
+  <link rel="stylesheet" href="./assets/style.css" />
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
+
 <body>
   <div class="bg-float"></div>
 
@@ -34,6 +38,8 @@
         <span class="badge" id="authBadge">目前：讀取中…</span>
         <img class="avatar" id="authPic" alt="">
         <span class="badge" id="authName">...</span>
+
+        <!-- app.js 會依狀態自動顯示/隱藏 -->
         <button class="btn" id="btnOpenLogin" type="button">登入 / 訪客</button>
         <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
       </div>
@@ -75,6 +81,7 @@
     </div>
   </div>
 
+  <!-- Login modal：這頁維持原版（登入/訪客） -->
   <div class="modal" id="loginModal">
     <div class="modalBox fadeIn">
       <h3>需要登入才能互動</h3>
@@ -88,20 +95,41 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="./assets/app.js"></script>
-  <script>
-    window.addEventListener("load", ()=>{
-      const el = document.getElementById("hallGuard");
-      if(MB.state.mode === "user") el.textContent = "✅ 已登入：可以互動（第 3 步才接上按讚留言）";
-      else el.textContent = "👀 訪客模式：可看貼文，但互動會被鎖";
+  <!-- ✅ 讓 app.js 先載完再跑頁面 script -->
+  <script src="./assets/app.js" defer></script>
 
-      document.getElementById("btnNewPost").addEventListener("click", ()=>{
-        if(!MB_requireLogin("新增貼文")) return;
+  <script>
+    // 等 MB 初始化完成（mode 不再是 unknown）再更新 UI/綁事件
+    function waitForMBReady(timeoutMs = 5000) {
+      const start = Date.now();
+      return new Promise((resolve) => {
+        const tick = () => {
+          if (window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
+          if (Date.now() - start > timeoutMs) return resolve(false);
+          setTimeout(tick, 80);
+        };
+        tick();
+      });
+    }
+
+    window.addEventListener("load", async () => {
+      const ok = await waitForMBReady();
+      const el = document.getElementById("hallGuard");
+
+      // 即使 timeout，也不讓頁面壞掉
+      const mode = (ok && MB.state.mode) ? MB.state.mode : "guest";
+
+      el.textContent = (mode === "user")
+        ? "✅ 已登入：可以互動（第 3 步才接上按讚留言）"
+        : "👀 訪客模式：可看貼文，但互動會被鎖";
+
+      document.getElementById("btnNewPost").addEventListener("click", () => {
+        if (!MB_requireLogin("新增貼文")) return;
         toast("下一步才會做：新增貼文（從我的紀錄 / 新的分享）");
       });
 
-      document.getElementById("btnLike").addEventListener("click", ()=>{
-        if(!MB_requireLogin("按讚")) return;
+      document.getElementById("btnLike").addEventListener("click", () => {
+        if (!MB_requireLogin("按讚")) return;
         toast("下一步才會做：按讚寫入試算表");
       });
     });
