@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜我的紀錄</title>
-  <link rel="stylesheet" href="./assets/style.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link rel="stylesheet" href="assets/theme.css">
 
+  <!-- ✅ CSS 順序：theme → style -->
+  <link rel="stylesheet" href="./assets/theme.css">
+  <link rel="stylesheet" href="./assets/style.css" />
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
+
 <body>
   <div class="bg-float"></div>
 
@@ -85,20 +88,40 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="./assets/app.js"></script>
+  <!-- ✅ defer：讓 MB/app.js 先初始化完成 -->
+  <script src="./assets/app.js" defer></script>
+
   <script>
-    window.addEventListener("load", ()=>{
+    function waitForMBReady(timeoutMs = 6000){
+      const start = Date.now();
+      return new Promise((resolve)=>{
+        const tick = ()=>{
+          if(window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
+          if(Date.now() - start > timeoutMs) return resolve(false);
+          setTimeout(tick, 80);
+        };
+        tick();
+      });
+    }
+
+    window.addEventListener("load", async ()=>{
+      await waitForMBReady();
+
+      // ✅ records 頁：訪客必須被擋住並彈登入
       const ok = MB_requireLogin("我的紀錄");
       const t = document.getElementById("guardText");
-      if(ok){
-        t.textContent = "✅ 已登入，可以開始做紀錄介面（下一步）";
-      }else{
-        t.textContent = "🔒 訪客模式：已阻擋（符合規格）";
-      }
+      t.textContent = ok ? "✅ 已登入，可以開始做紀錄介面（下一步）"
+                         : "🔒 訪客模式：已阻擋（符合規格）";
 
       document.getElementById("btnAddRecord").addEventListener("click", ()=>{
         if(!MB_requireLogin("新增紀錄")) return;
         toast("下一步才會做：三種類型新增表單（影集/電影/電影院）");
+      });
+
+      // ✅ 你原本 btnGuest 沒有導向：補上（訪客去 hall）
+      document.getElementById("btnGuest")?.addEventListener("click", ()=>{
+        localStorage.setItem("mode","guest");
+        location.href = "hall.html?mode=guest";
       });
     });
   </script>
