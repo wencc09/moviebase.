@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MovieBase｜我的帳戶</title>
+  <link rel="stylesheet" href="./assets/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="bg-float"></div>
+
+  <div class="topbar">
+    <div class="nav">
+      <div class="brand">
+        <div class="logoDot"></div>
+        <div class="brandTitle">
+          <b>MovieBase</b>
+          <span>我的帳戶</span>
+        </div>
+      </div>
+
+      <div class="navLinks">
+        <a class="pill" data-nav href="about.html">網站介紹</a>
+        <a class="pill" data-nav href="records.html">我的紀錄</a>
+        <a class="pill" data-nav href="hall.html">漂浮影廳</a>
+        <a class="pill" data-nav href="account.html">我的帳戶</a>
+      </div>
+
+      <div class="rightBox">
+        <span class="badge" id="authBadge">目前：讀取中…</span>
+        <img class="avatar" id="authPic" alt="">
+        <span class="badge" id="authName">...</span>
+        <button class="btn" id="btnOpenLogin" type="button">登入 / 訪客</button>
+        <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2>帳戶資訊</h2>
+        <div class="muted" id="accInfo">讀取中…</div>
+        <div class="hr"></div>
+        <div class="muted">
+          你要求此頁要列出：<br>
+          ・訪客/Google 登入狀態<br>
+          ・用戶暱稱（可改，預設 Google 名字）<br>
+          ・我的貼文（可編輯/刪除）<br>
+          ・已按讚貼文（收藏）<br><br>
+          這些會在第 4 步完成。
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>快速入口</h2>
+        <div class="row">
+          <a class="btn primary" href="hall.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">去漂浮影廳</a>
+          <button class="btn" id="btnGoRecords" type="button">去我的紀錄</button>
+        </div>
+        <div class="hr"></div>
+        <div class="muted">
+          訪客點「我的紀錄」會被擋並跳登入（符合規格）。
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="loginModal">
+    <div class="modalBox fadeIn">
+      <h3>登入以查看完整帳戶</h3>
+      <div class="small">訪客只顯示訪客狀態；登入後才會有「我的貼文 / 已按讚」。</div>
+      <div class="hr"></div>
+      <div id="gsiBtn"></div>
+      <div class="hr"></div>
+      <button class="btn" id="btnGuest" type="button">我先用訪客</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    window.addEventListener("load", ()=>{
+      const info = document.getElementById("accInfo");
+      if(MB.state.mode === "user"){
+        info.innerHTML = `✅ 已登入<br>暱稱：<b>${MB.state.user.name || MB.state.user.email || ""}</b>`;
+      }else{
+        info.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才可查看：我的貼文 / 已按讚貼文`;
+      }
+
+      document.getElementById("btnGoRecords").addEventListener("click", ()=>{
+        if(!MB_requireLogin("我的紀錄")) return;
+        location.href = "records.html";
+      });
+    });
+  </script>
+</body>
+</html>
