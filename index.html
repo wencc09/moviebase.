@@ -202,6 +202,36 @@
 </head>
 
 <body>
+      <!-- Splash / 開場動畫（進站只看到這個，深色、無按鈕，只有小小 SKIP） -->
+    <section id="splash" class="splash" aria-hidden="false">
+      <div class="splashNoise" aria-hidden="true"></div>
+      <div class="splashVignette" aria-hidden="true"></div>
+    
+      <!-- 背景視覺：之後換成你的圖 -->
+      <div class="splashBg" aria-hidden="true">
+        <!-- 你之後可以把這張換成自己畫的圖：assets/splash.png -->
+        <img class="splashImg" src="./assets/splash-placeholder.png" alt="">
+      </div>
+    
+      <button id="btnSkip" class="skip" type="button">SKIP</button>
+    
+      <div class="splashCenter">
+        <div class="splashLogo">MB</div>
+    
+        <!-- 中英特效文字 -->
+        <h1 class="splashTitle">
+          <span class="glitch" data-text="MOVIEBASE">MOVIEBASE</span>
+        </h1>
+    
+        <p class="splashSub">
+          <span class="shine">Float your stories in a cinema of memories.</span><br/>
+          <span class="cn">把每一次觀影，收進漂浮影廳。</span>
+        </p>
+    
+        <div class="splashHint">點一下畫面繼續</div>
+      </div>
+    </section>
+
   <header class="top">
     <div class="topbar">
       <a class="brand" href="./">
