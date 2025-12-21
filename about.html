@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MovieBase｜網站介紹</title>
+  <link rel="stylesheet" href="./assets/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="bg-float"></div>
+
+  <div class="topbar">
+    <div class="nav">
+      <div class="brand">
+        <div class="logoDot"></div>
+        <div class="brandTitle">
+          <b>MovieBase</b>
+          <span>漂浮影廳 × 觀影日記</span>
+        </div>
+      </div>
+
+      <div class="navLinks">
+        <a class="pill" data-nav href="about.html">網站介紹</a>
+        <a class="pill" data-nav href="records.html">我的紀錄</a>
+        <a class="pill" data-nav href="hall.html">漂浮影廳</a>
+        <a class="pill" data-nav href="account.html">我的帳戶</a>
+      </div>
+
+      <div class="rightBox">
+        <span class="badge" id="authBadge">目前：讀取中…</span>
+        <img class="avatar" id="authPic" alt="">
+        <span class="badge" id="authName">...</span>
+        <button class="btn" id="btnOpenLogin" type="button">登入 / 訪客</button>
+        <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2>網站介紹</h2>
+        <div class="muted">
+          你想做的是把「紀錄」＋「分享」結合：<br><br>
+          ✅ 私人區：<b>我的紀錄</b>（影集/動漫進度、電影進度、電影院票根與照片）<br>
+          ✅ 社群區：<b>漂浮影廳</b>（像 Threads/IG 的貼文牆，用 hashtag 找同好互動）<br><br>
+          介面主視覺圍繞「漂浮影廳」：深色、電影氛圍、漂浮動畫、小互動。
+        </div>
+
+        <div class="hr"></div>
+        <div class="muted">
+          <b>你的權限規則（我們會嚴格照做）</b><br>
+          ・訪客：只能看漂浮影廳，不能紀錄、不能發文、不能按讚留言<br>
+          ・登入：才能使用我的紀錄與社群互動
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>下一步會做什麼？</h2>
+        <div class="muted">
+          第 1 步（你現在做完的）：<b>頁面架構 + 美術風格 + 入口流程</b><br>
+          第 2 步：<b>我的紀錄</b> 正式切成三區（已觀看/觀看中/未觀看），卡片顏色區分種類<br>
+          第 3 步：<b>漂浮影廳</b> 做成「大螢幕貼文牆」＋ hashtag 搜尋<br>
+          第 4 步：接上按讚/留言/通知鐘（訪客全部鎖）
+        </div>
+
+        <div class="bigBtnRow" style="margin-top:12px;">
+          <a class="btn primary" href="records.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">去我的紀錄</a>
+          <a class="btn" href="hall.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">去漂浮影廳</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="loginModal">
+    <div class="modalBox fadeIn">
+      <h3>登入 / 訪客模式</h3>
+      <div class="small">
+        不管你有沒有跳過介紹，都會出現這個視窗（符合你的規格）。
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <button class="btn" id="btnGuest" type="button">以訪客模式進入</button>
+        <button class="btn primary" type="button" onclick="location.href='hall.html'">先逛漂浮影廳</button>
+      </div>
+      <div class="hr"></div>
+      <div class="small">使用 Google 登入：</div>
+      <div id="gsiBtn" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    // 介紹頁：如果是入口跳轉來的，或第一次進來，都彈一次 modal
+    window.addEventListener("load", ()=>{
+      const qs = new URLSearchParams(location.search);
+      if(qs.get("fromIntro") === "1") setTimeout(()=> MB_openLoginModal(), 450);
+      else setTimeout(()=> MB_openLoginModal(), 650);
+    });
+  </script>
+</body>
+</html>
