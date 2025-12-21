@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MovieBase｜我的紀錄</title>
+  <link rel="stylesheet" href="./assets/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="bg-float"></div>
+
+  <div class="topbar">
+    <div class="nav">
+      <div class="brand">
+        <div class="logoDot"></div>
+        <div class="brandTitle">
+          <b>MovieBase</b>
+          <span>我的紀錄（登入限定）</span>
+        </div>
+      </div>
+
+      <div class="navLinks">
+        <a class="pill" data-nav href="about.html">網站介紹</a>
+        <a class="pill" data-nav href="records.html">我的紀錄</a>
+        <a class="pill" data-nav href="hall.html">漂浮影廳</a>
+        <a class="pill" data-nav href="account.html">我的帳戶</a>
+      </div>
+
+      <div class="rightBox">
+        <span class="badge" id="authBadge">目前：讀取中…</span>
+        <img class="avatar" id="authPic" alt="">
+        <span class="badge" id="authName">...</span>
+        <button class="btn" id="btnOpenLogin" type="button">登入 / 訪客</button>
+        <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2>我的紀錄</h2>
+        <div class="muted">
+          這頁會依你規格做出三大區塊：<br>
+          ✅ 已觀看（最大區域 + 大方塊，顏色區分影集/動漫/電影）<br>
+          ✅ 觀看中（較小區域 + 大方塊）<br>
+          ✅ 未觀看（觀看清單：小方塊，只顯示片名）<br><br>
+          點進每個作品，會進入「該作品的日記」，能看到多筆備忘錄、不同集數/秒數的心路歷程。
+        </div>
+
+        <div class="hr"></div>
+        <button class="btn primary" id="btnAddRecord" type="button">＋ 新增紀錄（下一步做）</button>
+        <div class="muted" style="margin-top:10px;">
+          你現在先不用管資料，先把分頁架構與 UI 定好。<br>
+          第 2 步我們才會把「新增/卡片/日記」全部做出來並接到試算表。
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>登入檢查</h2>
+        <div class="muted" id="guardText">檢查中…</div>
+        <div class="hr"></div>
+        <div class="muted">
+          規則：訪客點進來要跳出「請先登入！」（你要求）<br>
+          我們已先在前端擋住；第 2 步會讓 Apps Script 後端也擋（更安全）。
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="loginModal">
+    <div class="modalBox fadeIn">
+      <h3>請先登入！</h3>
+      <div class="small">我的紀錄是私人功能，訪客不能使用。</div>
+      <div class="hr"></div>
+      <div id="gsiBtn"></div>
+      <div class="hr"></div>
+      <button class="btn" id="btnGuest" type="button">我只想逛漂浮影廳</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    window.addEventListener("load", ()=>{
+      const ok = MB_requireLogin("我的紀錄");
+      const t = document.getElementById("guardText");
+      if(ok){
+        t.textContent = "✅ 已登入，可以開始做紀錄介面（下一步）";
+      }else{
+        t.textContent = "🔒 訪客模式：已阻擋（符合規格）";
+      }
+
+      document.getElementById("btnAddRecord").addEventListener("click", ()=>{
+        if(!MB_requireLogin("新增紀錄")) return;
+        toast("下一步才會做：三種類型新增表單（影集/電影/電影院）");
+      });
+    });
+  </script>
+</body>
+</html>
