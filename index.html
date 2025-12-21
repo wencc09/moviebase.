@@ -213,12 +213,17 @@
       </a>
 
       <div class="right">
-        <button class="btn" id="btnTheme" type="button">Theme</button>
         <div class="state" id="loginState">目前：未登入</div>
         <button class="btn" id="btnAbout" type="button">看網站介紹</button>
+  
+        <!-- 未登入才顯示 -->
         <button class="btn" id="btnGuest" type="button">以訪客進入</button>
         <button class="btn btn-primary" id="btnLogin" type="button">立即登入</button>
+      
+        <!-- 已登入才顯示 -->
+        <button class="btn" id="btnLogoutTop" type="button" style="display:none;">登出</button>
       </div>
+
     </div>
   </header>
 
