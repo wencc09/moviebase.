@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase</title>
 
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
   <!-- Theme (Step 1) -->
-  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="./assets/theme.css">
 
   <!-- Google Sign-In (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -38,23 +43,22 @@
       font-weight:700;
     }
     .brandText{ display:flex; flex-direction:column; line-height:1.05; }
-    .brandText b{ font-family:"Sora","Noto Sans TC",sans-serif; letter-spacing:.2px; }
-    .brandText span{ font-size:12px; color:var(--muted); margin-top:4px; }
+    .brandText b{ font-family:"Sora","Noto Sans TC",sans-serif; letter-spacing:.2px; font-size:16px; }
+    .brandText span{ font-size:13px; color:var(--muted); margin-top:4px; }
 
     .right{
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       justify-content:flex-end;
     }
-    .state{ font-size:12px; color:var(--muted); border:1px solid var(--stroke); background:rgba(255,255,255,.05); padding:6px 10px; border-radius:999px; }
+    .state{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--stroke);
+      background:rgba(255,255,255,.05);
+      padding:6px 10px; border-radius:999px;
+    }
 
-    .hero{
-      padding: 18px 0 6px;
-    }
-    .heroCard{
-      padding: 20px;
-      position:relative;
-      overflow:hidden;
-    }
+    .hero{ padding: 18px 0 6px; }
+    .heroCard{ padding: 20px; position:relative; overflow:hidden; }
     .heroCard::after{
       content:"";
       position:absolute; inset:-140px;
@@ -62,7 +66,6 @@
         radial-gradient(circle at 25% 30%, rgba(0,213,255,.22), transparent 60%),
         radial-gradient(circle at 75% 40%, rgba(124,77,255,.22), transparent 60%),
         radial-gradient(circle at 55% 85%, rgba(255,79,216,.14), transparent 60%);
-      filter: blur(0px);
       pointer-events:none;
     }
     .heroInner{
@@ -76,25 +79,11 @@
       .heroInner{ grid-template-columns: 1fr; }
     }
 
-    .intro{
-      padding: 18px;
-      display:grid;
-      gap: 14px;
-    }
+    .intro{ padding: 18px; display:grid; gap: 14px; }
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top: 4px; }
 
-    .chips{
-      display:flex; flex-wrap:wrap; gap:8px;
-      margin-top: 4px;
-    }
-
-    .stepBox{
-      padding: 18px;
-      display:grid;
-      gap: 12px;
-    }
-    .stepHead{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-    }
+    .stepBox{ padding: 18px; display:grid; gap: 12px; }
+    .stepHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .stepTitle{
       font-family:"Sora","Noto Sans TC",sans-serif;
       font-weight:700;
@@ -115,10 +104,7 @@
       transition: width .35s ease;
     }
 
-    .stepK{
-      display:inline-flex; align-items:center; gap:8px;
-      font-size:12px; color:var(--muted);
-    }
+    .stepK{ display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
     .dotRow{ display:flex; gap:6px; }
     .dot{
       width:7px; height:7px; border-radius:999px;
@@ -130,12 +116,8 @@
       border-color: rgba(255,255,255,.22);
     }
 
-    .ctaRow{
-      display:flex; gap:10px; flex-wrap:wrap;
-      margin-top: 10px;
-    }
+    .ctaRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
 
-    /* Gallery preview */
     .gallery{
       margin-top: 14px;
       display:grid;
@@ -169,12 +151,9 @@
       letter-spacing:.2px;
     }
 
-    /* About section */
     section.block{ margin-top: 18px; }
     .blockCard{ padding: 18px; }
-    .cols{
-      display:grid; grid-template-columns: 1fr 1fr; gap:14px;
-    }
+    .cols{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
     @media (max-width: 920px){
       .cols{ grid-template-columns: 1fr; }
     }
@@ -192,7 +171,6 @@
     }
     .mini p{ margin:0; color:var(--muted); font-size:14px; line-height:1.65; }
 
-    /* Modal */
     .modal{
       position:fixed; inset:0; z-index:50;
       display:none;
@@ -201,10 +179,7 @@
       padding: 18px;
     }
     .modal.open{ display:grid; }
-    .modalCard{
-      width: min(560px, 100%);
-      padding: 16px;
-    }
+    .modalCard{ width: min(560px, 100%); padding: 16px; }
     .modalHead{
       display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
       margin-bottom: 10px;
@@ -231,7 +206,6 @@
     <div class="topbar">
       <a class="brand" href="./">
         <div class="logo">MB</div>
-        <button class="btn" id="themeToggle" type="button">Theme</button>
         <div class="brandText">
           <b>MovieBase</b>
           <span>漂浮影廳｜觀影日記</span>
@@ -239,6 +213,7 @@
       </a>
 
       <div class="right">
+        <button class="btn" id="btnTheme" type="button">Theme</button>
         <div class="state" id="loginState">目前：未登入</div>
         <button class="btn" id="btnAbout" type="button">看網站介紹</button>
         <button class="btn" id="btnGuest" type="button">以訪客進入</button>
@@ -351,7 +326,6 @@
 
       <div class="modalBody">
         <div class="gsiWrap">
-          <!-- 這裡放 Google Sign-In button -->
           <div id="gsiBtn"></div>
           <div class="hint" style="margin-top:8px;">
             若你已成功登入過，會在其他頁面顯示登入狀態；本入口不會自動跳轉。
@@ -366,42 +340,31 @@
     </div>
   </div>
 
-  <script src="assets/entry.js"></script>
-
-  <!-- 你原本的 auth/app.js 如果已存在就照用（用來把 token 存起來、驗證後端） -->
-  <script src="assets/app.js"></script>
+  <script src="./assets/entry.js" defer></script>
+  <script src="./assets/app.js" defer></script>
 
   <script>
-    // 入口頁只負責「顯示 Google 按鈕 + 存 token」，不負責自動彈窗
+    // 入口頁：顯示 Google 按鈕 + 存 token
     window.addEventListener("load", () => {
       if (!window.google || !google.accounts?.id) return;
 
-      // 這兩個值應該已經在 assets/app.js 內有，你若有全域 config 可改成讀 config
       const CLIENT_ID = window.MB_CLIENT_ID || window.GOOGLE_CLIENT_ID || "";
-
-      if (!CLIENT_ID) {
-        // 沒有 client id 也不要讓頁面掛掉
-        return;
-      }
+      if (!CLIENT_ID) return;
 
       google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: async (resp) => {
           try {
-            // 先存 token
             localStorage.setItem("id_token", resp.credential);
 
-            // 如果 assets/app.js 有提供「驗證/取使用者」方法，就用它把名字寫入 localStorage
             if (window.MB && typeof window.MB.me === "function") {
               const me = await window.MB.me(resp.credential);
               if (me && me.name) localStorage.setItem("mb_user_name", me.name);
             }
 
-            // 更新入口狀態
             const name = localStorage.getItem("mb_user_name");
-            document.getElementById("loginState").textContent = name ? `目前：已登入（${name}）` : "目前：已登入";
-
-            // 不自動跳走：讓使用者自己選擇要去哪
+            document.getElementById("loginState").textContent =
+              name ? `目前：已登入（${name}）` : "目前：已登入";
           } catch (e) {
             console.error(e);
           }
