@@ -3,275 +3,1093 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MovieBase｜入口</title>
+  <title>MovieBase｜漂浮影廳 × 觀影日記</title>
+
+  <!-- Google Sign-In (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
+    /* =====================
+       MovieBase Dark UI
+    ===================== */
     :root{
-      --bg:#070A12;
-      --card:rgba(14,20,40,.62);
-      --line:rgba(255,255,255,.10);
-      --text:#e8ecff;
-      --muted:rgba(232,236,255,.72);
-      --neon:#22d3ee;
-      --neon2:#a78bfa;
-      --ok:#34d399;
-      --err:#fb7185;
+      --bg0:#070A12;
+      --bg1:#0B1222;
+      --card:rgba(255,255,255,.07);
+      --card2:rgba(255,255,255,.10);
+      --stroke:rgba(255,255,255,.10);
+      --text:#EAF0FF;
+      --muted:rgba(234,240,255,.68);
+      --brandA:#7C3AED;
+      --brandB:#06B6D4;
+      --good:#34D399;
+      --bad:#FB7185;
+      --warn:#FBBF24;
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --radius: 18px;
     }
-    *{box-sizing:border-box}
+
+    *{ box-sizing:border-box; }
     body{
-      margin:0; min-height:100vh; color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color:var(--text);
       background:
-        radial-gradient(900px 500px at 20% 20%, rgba(167,139,250,.25), transparent 55%),
-        radial-gradient(900px 600px at 85% 35%, rgba(34,211,238,.18), transparent 55%),
-        radial-gradient(700px 500px at 60% 90%, rgba(34,211,238,.08), transparent 60%),
-        var(--bg);
+        radial-gradient(900px 450px at 15% 0%, rgba(124,58,237,.35), transparent 55%),
+        radial-gradient(900px 450px at 80% 10%, rgba(6,182,212,.28), transparent 55%),
+        radial-gradient(1100px 600px at 50% 110%, rgba(20,184,166,.14), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      min-height:100vh;
       overflow-x:hidden;
     }
-    .wrap{max-width:1100px;margin:0 auto;padding:24px 16px 44px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
-    .brand{display:flex;align-items:center;gap:10px}
-    .logo{
-      width:38px;height:38px;border-radius:14px;
-      background: linear-gradient(135deg, rgba(34,211,238,.8), rgba(167,139,250,.9));
-      box-shadow: 0 12px 40px rgba(34,211,238,.18);
-      position:relative; overflow:hidden;
-    }
-    .logo:after{
-      content:""; position:absolute; inset:-40%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
-      transform: rotate(25deg);
-      animation: sweep 2.6s infinite ease-in-out;
-      opacity:.55;
-    }
-    @keyframes sweep{ 0%{transform:translateX(-40%) rotate(25deg)} 60%{transform:translateX(140%) rotate(25deg)} 100%{transform:translateX(140%) rotate(25deg)} }
-    .title{font-weight:900;letter-spacing:.4px;font-size:18px;margin:0}
-    .sub{margin:0;color:var(--muted);font-size:12px}
 
-    .hero{
+    /* Floating grain */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      opacity:.35;
+      pointer-events:none;
+      mix-blend-mode: overlay;
+    }
+
+    a{ color:inherit; }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:30;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(10,14,24,.65);
+      border-bottom:1px solid var(--stroke);
+    }
+
+    .wrap{
+      max-width: 1100px;
+      margin:0 auto;
+      padding: 14px 16px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      justify-content:space-between;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 220px;
+    }
+
+    .logo{
+      width:38px; height:38px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(6,182,212,1));
+      box-shadow: 0 12px 32px rgba(124,58,237,.25), 0 10px 28px rgba(6,182,212,.18);
       position:relative;
-      border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(14,20,40,.72), rgba(10,14,28,.52));
-      border-radius:24px;
-      padding:18px;
       overflow:hidden;
     }
-    .heroGrid{
-      display:grid; gap:14px;
-      grid-template-columns: 1.1fr .9fr;
-      align-items:stretch;
+    .logo::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: conic-gradient(from 30deg, transparent 0 25%, rgba(255,255,255,.35) 35%, transparent 55% 100%);
+      animation: shine 5.2s linear infinite;
     }
-    @media (max-width: 900px){
-      .heroGrid{grid-template-columns:1fr}
-    }
-
-    .panel{
-      border:1px solid var(--line);
-      background: rgba(6,10,20,.35);
-      border-radius:20px;
-      padding:16px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 18px 60px rgba(0,0,0,.28);
+    @keyframes shine{
+      0%{ transform: rotate(0deg); }
+      100%{ transform: rotate(360deg); }
     }
 
-    .big{font-size:clamp(18px, 2.2vw, 26px); font-weight:900; margin:0 0 8px}
-    .desc{color:var(--muted); font-size:13px; line-height:1.7; margin:0}
-    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-    .chip{
-      font-size:12px; padding:7px 10px; border-radius:999px;
-      border:1px solid var(--line); background: rgba(255,255,255,.04);
+    .brand h1{
+      margin:0;
+      font-size: 15px;
+      letter-spacing:.4px;
+      line-height:1.2;
+    }
+    .brand .sub{
+      font-size:12px;
       color:var(--muted);
     }
 
-    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
-    .btn{
-      border:1px solid var(--line);
+    .right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      border:1px solid var(--stroke);
       background: rgba(255,255,255,.06);
-      color:var(--text);
-      padding:10px 12px; border-radius:14px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      color: var(--muted);
+    }
+
+    .tabs{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      overflow:auto;
+      padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:10px 14px;
+      border-radius: 999px;
+      font-size: 13px;
       cursor:pointer;
-      transition:.15s transform, .15s box-shadow, .15s border-color;
-      font-weight:700;
+      transition:.2s;
+      white-space:nowrap;
     }
-    .btn:hover{transform:translateY(-1px); border-color: rgba(34,211,238,.35); box-shadow: 0 0 0 4px rgba(34,211,238,.10);}
-    .btn.primary{
-      border-color: rgba(34,211,238,.5);
-      background: linear-gradient(135deg, rgba(34,211,238,.25), rgba(167,139,250,.18));
+    .tab:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.09);
     }
-
-    .status{margin-top:10px;font-size:12px;color:var(--muted)}
-    .ok{color:var(--ok)}
-    .err{color:var(--err)}
-
-    /* Floating “screen light” */
-    .glow{
-      position:absolute; inset:-30%;
-      background: radial-gradient(circle at 30% 30%, rgba(34,211,238,.18), transparent 45%),
-                  radial-gradient(circle at 70% 55%, rgba(167,139,250,.16), transparent 50%);
-      filter: blur(30px);
-      opacity:.9;
-      animation: drift 9s ease-in-out infinite;
-      pointer-events:none;
-    }
-    @keyframes drift{
-      0%{transform:translate(0,0) scale(1)}
-      50%{transform:translate(2%,3%) scale(1.03)}
-      100%{transform:translate(0,0) scale(1)}
+    .tab.is-active{
+      background: linear-gradient(135deg, rgba(124,58,237,.90), rgba(6,182,212,.75));
+      border-color: transparent;
+      box-shadow: 0 10px 26px rgba(124,58,237,.20);
     }
 
-    /* Mobile-friendly bottom hint */
-    .hint{margin-top:12px; color:var(--muted); font-size:12px}
-    .userBox{display:none; gap:10px; align-items:center; margin-top:12px}
-    .pic{width:34px;height:34px;border-radius:999px;border:1px solid var(--line)}
-    .small{font-size:12px;color:var(--muted)}
+    main{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 16px 70px;
+      display:grid;
+      gap:14px;
+    }
+
+    @media (min-width: 980px){
+      main{ grid-template-columns: 380px 1fr; align-items:start; }
+    }
+
+    .card{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .cardHead{
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .cardHead h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.4px;
+    }
+    .cardHead .muted{ color:var(--muted); font-size:12px; }
+
+    .cardBody{ padding: 14px; }
+
+    label{ display:block; margin-top:10px; font-size:12px; color: var(--muted); }
+    input, select, textarea{
+      width:100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(6,8,14,.50);
+      color: var(--text);
+      outline:none;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(6,182,212,.45);
+      box-shadow: 0 0 0 4px rgba(6,182,212,.12);
+    }
+    textarea{ min-height: 90px; resize: vertical; }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 520px){
+      .row{ grid-template-columns: 1fr; }
+    }
+
+    .btns{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    button{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.07);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      transition:.18s;
+      font-size:13px;
+    }
+    button:hover{ transform: translateY(-1px); background: rgba(255,255,255,.10); }
+    button:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+
+    .primary{
+      border:none;
+      background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(6,182,212,.75));
+      box-shadow: 0 12px 28px rgba(124,58,237,.20);
+    }
+    .danger{
+      border:none;
+      background: linear-gradient(135deg, rgba(251,113,133,.85), rgba(124,58,237,.50));
+    }
+
+    .thumb{
+      width:58px;
+      height:58px;
+      border-radius: 14px;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+    }
+
+    .status{
+      margin-top:10px;
+      font-size:12px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      line-height:1.45;
+    }
+    .ok{ color: var(--good); }
+    .err{ color: var(--bad); }
+    .warn{ color: var(--warn); }
+
+    /* Feed styles (Floating Cinema) */
+    .cinemaTitle{
+      padding: 14px;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .cinemaDot{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,.18);
+      margin-top:4px;
+      box-shadow: 0 0 0 6px rgba(255,255,255,.06);
+    }
+    .cinemaTitle .big{
+      font-weight:800;
+      letter-spacing:.5px;
+    }
+    .cinemaTitle .small{
+      margin-top:4px;
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.4;
+    }
+
+    .searchRow{
+      padding: 0 14px 14px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .searchRow input{
+      flex:1;
+      min-width: 220px;
+    }
+    .countPill{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      padding: 10px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .feed{
+      padding: 14px;
+      display:grid;
+      gap:12px;
+    }
+
+    .post{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      overflow:hidden;
+      transition: .2s;
+      position:relative;
+    }
+    .post:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .postHead{
+      padding: 12px 12px 10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .user{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      min-width: 0;
+    }
+    .avatar{
+      width:36px; height:36px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.07);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+    }
+    .uMeta{ min-width:0; }
+    .uTitle{
+      font-weight:900;
+      font-size:14px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .uSub{
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .ts{
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .postImg{
+      width:100%;
+      max-height: 520px;
+      object-fit: cover;
+      display:block;
+      background: rgba(255,255,255,.06);
+    }
+
+    .postActions{
+      padding: 10px 12px 0;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .chipBtn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor:pointer;
+    }
+    .chipBtn:hover{
+      background: rgba(255,255,255,.10);
+    }
+
+    .postBody{
+      padding: 12px;
+      display:grid;
+      gap:8px;
+    }
+    .badges{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .badge{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+    }
+    .text{
+      white-space: pre-wrap;
+      line-height: 1.55;
+      font-size: 13px;
+      color: rgba(234,240,255,.92);
+    }
+
+    .hint{
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.5;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .userBox{
+      display:none;
+      align-items:center;
+      gap:10px;
+    }
+    .userPic{
+      width:28px; height:28px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      display:none;
+    }
+    .userName{
+      font-size:12px;
+      color: var(--muted);
+    }
+
+    /* subtle floating animation on cards */
+    .floaty{
+      animation: floaty 7s ease-in-out infinite;
+    }
+    @keyframes floaty{
+      0%,100%{ transform: translateY(0px); }
+      50%{ transform: translateY(-6px); }
+    }
+
+    /* mobile panels */
+    @media (max-width: 979px){
+      main{ grid-template-columns:1fr; }
+      #panelCreate{ display:none; }
+    }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo"></div>
-        <div>
-          <p class="title">MovieBase</p>
-          <p class="sub">漂浮影廳 × 觀影日記</p>
-        </div>
-      </div>
-      <div class="chip">RWD ✅</div>
-    </div>
-
-    <div class="hero">
-      <div class="glow"></div>
-
-      <div class="heroGrid">
-        <div class="panel">
-          <h1 class="big">把你的觀影進度、心情、票根，<br>變成一座漂浮影廳。</h1>
-          <p class="desc">
-            你可以用 Google 登入建立「我的紀錄」，也可以先用訪客模式逛貼文牆。
-            之後會有：影集進度、多則備忘錄、電影院票根、貼文牆 hashtag 搜尋、通知小鈴噹。
-          </p>
-
-          <div class="chips">
-            <div class="chip">影集 / 動漫：季＋集＋時間</div>
-            <div class="chip">電影：觀看中秒數</div>
-            <div class="chip">電影院：票根＋照片</div>
-            <div class="chip">漂浮影廳：hashtag</div>
+  <header>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>MovieBase</h1>
+            <div class="sub">漂浮影廳 × 觀影日記（GitHub Pages 前端 + Apps Script 後端）</div>
           </div>
+        </div>
 
-          <div class="actions">
-            <button class="btn" id="btnGuest" type="button">以訪客模式進入</button>
+        <div class="right">
+          <div class="pill" id="modeBadge">目前：未登入</div>
+
+          <!-- 未登入：訪客 + Google -->
+          <div id="loginButtons" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button id="btnGuest" type="button">以訪客進入</button>
             <div id="gsiBtn"></div>
           </div>
 
-          <div class="userBox" id="userBox">
-            <img id="userPic" class="pic" alt="">
-            <div>
-              <div id="userName" style="font-weight:900"></div>
-              <div class="small" id="userEmail"></div>
-            </div>
-            <a class="btn primary" href="./app.html" style="text-decoration:none;">進入 MovieBase ➜</a>
-          </div>
-
-          <div class="status" id="status"></div>
-          <div class="hint">手機也能正常顯示（之後主站會做「手機底部導覽列」）</div>
-        </div>
-
-        <div class="panel">
-          <div class="chip" style="display:inline-flex;gap:8px;align-items:center;">
-            <span>🎞️</span><span>登入測試</span>
-          </div>
-          <p class="desc" style="margin-top:10px">
-            這頁先完成：<b>Google 登入 → 拿到 ID Token → 丟給 Apps Script 驗證</b><br>
-            成功後才進入主站做四分頁與資料寫入試算表。
-          </p>
-          <div class="chips" style="margin-top:12px">
-            <div class="chip">不再 origin_mismatch</div>
-            <div class="chip">前後端分離</div>
-            <div class="chip">作品集感</div>
+          <!-- 已登入 -->
+          <div id="userBox" class="userBox">
+            <img id="userPic" class="userPic" alt="">
+            <div class="userName" id="userName"></div>
+            <button id="btnLogout" type="button">登出</button>
           </div>
         </div>
       </div>
+
+      <div class="tabs" id="tabs">
+        <button class="tab is-active" data-tab="feed" type="button">🎥 漂浮影廳</button>
+        <button class="tab" data-tab="create" type="button">✍️ 新增貼文</button>
+        <button class="tab" data-tab="about" type="button">✨ 關於</button>
+      </div>
     </div>
-  </div>
+  </header>
+
+  <main>
+    <!-- Create -->
+    <section class="card floaty" id="panelCreate">
+      <div class="cardHead">
+        <div>
+          <h2>✍️ 新增貼文（posts）</h2>
+          <div class="muted">寫入 Spreadsheet → posts</div>
+        </div>
+        <div class="muted" id="createHint">登入後可帶入作者資訊</div>
+      </div>
+
+      <div class="cardBody">
+        <label>片名（必填）</label>
+        <input id="title" placeholder="例如：進擊的巨人 最終季" />
+
+        <div class="row">
+          <div>
+            <label>類別</label>
+            <select id="category">
+              <option value="電影">電影</option>
+              <option value="影集">影集</option>
+              <option value="動畫">動畫</option>
+              <option value="動畫電影">動畫電影</option>
+            </select>
+          </div>
+          <div>
+            <label>平台</label>
+            <select id="platform">
+              <option value="Netflix">Netflix</option>
+              <option value="Disney+">Disney+</option>
+              <option value="YouTube">YouTube</option>
+              <option value="bilibili">bilibili</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>評分（1~10）</label>
+            <input id="rating" type="number" min="1" max="10" value="8" />
+          </div>
+          <div>
+            <label>觀看日期</label>
+            <input id="watchDate" type="date" />
+          </div>
+        </div>
+
+        <label>心得</label>
+        <textarea id="review" placeholder="寫下你的感想…（可放 #hashtag）"></textarea>
+
+        <label>備註</label>
+        <input id="note" placeholder="例如：推薦給朋友 / 想二刷" />
+
+        <label>#Hashtags（可選）</label>
+        <input id="hashtags" placeholder="例如：#進擊的巨人 #地鳴 #最後一季" />
+
+        <label>上傳照片（海報/截圖，可選）</label>
+        <input id="photo" type="file" accept="image/*" />
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+          <img id="photoPreview" class="thumb" alt="">
+          <div class="muted" style="font-size:12px;line-height:1.4;">
+            建議小於 500KB（上傳更穩）。<br>照片會存到 Drive，Sheet 存 photoUrl。
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="btnCreate" type="button">新增貼文</button>
+          <button id="btnReload" type="button">重新整理貼文牆</button>
+        </div>
+
+        <div id="status" class="status"></div>
+      </div>
+    </section>
+
+    <!-- Feed -->
+    <section class="card" id="panelFeed">
+      <div class="cinemaTitle">
+        <div class="cinemaDot"></div>
+        <div>
+          <div class="big">🎥 漂浮影廳（貼文牆）</div>
+          <div class="small">
+            以「電影院螢幕」的方式滑動看貼文。<br>
+            訪客可看貼文但不可互動（按讚/留言之後再做）。
+          </div>
+        </div>
+      </div>
+
+      <div class="searchRow">
+        <input id="q" placeholder="搜尋片名 / #hashtag…" />
+        <div class="countPill" id="count">共 0 筆</div>
+      </div>
+
+      <div class="feed" id="feed"></div>
+      <div class="feed" id="singleWrap" style="display:none;"></div>
+
+      <div class="hint" id="panelAbout" style="display:none;">
+        <div style="font-weight:900;margin-bottom:8px;">✨ 關於 MovieBase</div>
+        <div>
+          這裡是「觀影紀錄 + 社群分享」的入口頁 MVP。<br>
+          下一步我們會做：<b>我的紀錄（三區）</b>、<b>貼文牆 hashtag 搜尋</b>、<b>訪客限制互動</b>、<b>通知小鈴鐺</b>。<br><br>
+          ✅ 目前這頁負責：posts 的 list / get / create、以及 Google 登入驗證（action: me）。
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    // ✅ 你要改的兩個地方：
-    const GOOGLE_CLIENT_ID = "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com";
+    /* =========================
+       ✅ 0) 你只要改這兩個
+    ========================= */
+
+    // 你的 Apps Script Web App /exec
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyuipb05zxPbPp7iAotqe_Oya4je2s-l3COcJ8kDO7e4VHjdLRuNwJhrymkPN02b9Sd/exec";
 
+    // 你的 Google OAuth Web Client ID
+    const GOOGLE_CLIENT_ID = "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com";
+
+    /* =========================
+       ✅ 1) Helpers
+    ========================= */
     const $ = (id) => document.getElementById(id);
-    function setStatus(msg, type=""){
+
+    function setStatus(msg, type="") {
       const el = $("status");
       el.className = "status " + (type || "");
       el.textContent = msg || "";
     }
 
-    async function apiPOST(payload){
+    function todayISO() {
+      const d = new Date();
+      const z = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+    }
+
+    async function fileToBase64(file) {
+      if (!file) return "";
+      const reader = new FileReader();
+      return await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function apiGET(params) {
+      const url = new URL(GAS_WEBAPP_URL);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      const res = await fetch(url.toString());
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch { throw new Error("GET 回傳不是 JSON：" + text.slice(0, 160)); }
+    }
+
+    async function apiPOST(payload) {
       const res = await fetch(GAS_WEBAPP_URL, {
         method: "POST",
-        headers: {"Content-Type":"text/plain;charset=utf-8"},
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
       });
-      return await res.json();
+
+      const text = await res.text();
+      console.log("GAS raw response:", text);
+
+      try { return JSON.parse(text); }
+      catch { throw new Error("POST 回傳不是 JSON：" + text.slice(0, 160)); }
+    }
+
+    function escapeHtml(str) {
+      return (str ?? "").toString().replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
+    function fmtTS(ts) {
+      if (!ts) return "";
+      const d = new Date(ts);
+      return d.toLocaleString("zh-TW", { hour12: false });
+    }
+
+    function getQueryId() {
+      return new URLSearchParams(location.search).get("id");
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("已複製分享連結 ✅", "ok");
+      } catch {
+        prompt("複製這個連結分享：", text);
+      }
+    }
+
+    /* =========================
+       ✅ 2) Login Mode
+    ========================= */
+    let currentUser = null; // {sub,email,name,picture}
+    let isGuest = false;
+
+    function showLoggedOut(){
+      currentUser = null;
+      isGuest = false;
+
+      $("modeBadge").textContent = "目前：未登入";
+      $("loginButtons").style.display = "flex";
+      $("userBox").style.display = "none";
+      $("userPic").style.display = "none";
+      $("userName").textContent = "";
+      $("createHint").textContent = "登入後可帶入作者資訊";
+    }
+
+    function showGuest(){
+      currentUser = null;
+      isGuest = true;
+
+      $("modeBadge").textContent = "目前：訪客模式";
+      $("loginButtons").style.display = "flex";
+      $("userBox").style.display = "none";
+      $("userPic").style.display = "none";
+      $("userName").textContent = "";
+      $("createHint").textContent = "訪客也能發文（之後可限制）";
     }
 
     function showLoggedIn(user){
-      $("userBox").style.display = "flex";
-      $("userName").textContent = user.name || "";
-      $("userEmail").textContent = user.email || "";
-      if (user.picture) $("userPic").src = user.picture;
-      $("gsiBtn").style.display = "none";
-    }
+      currentUser = user;
+      isGuest = false;
 
-    function showLoggedOut(){
-      $("userBox").style.display = "none";
-      $("gsiBtn").style.display = "block";
+      $("modeBadge").textContent = "目前：已登入";
+      $("loginButtons").style.display = "none";
+      $("userBox").style.display = "flex";
+      $("userName").textContent = user.name || user.email || "";
+
+      if (user.picture){
+        $("userPic").src = user.picture;
+        $("userPic").style.display = "block";
+      } else {
+        $("userPic").style.display = "none";
+      }
+      $("createHint").textContent = "作者會寫入 posts（authorName/Email/Sub）";
     }
 
     async function restoreLogin(){
       const idToken = localStorage.getItem("id_token");
-      if (!idToken) return showLoggedOut();
+      if (!idToken){
+        showLoggedOut();
+        return;
+      }
 
-      setStatus("驗證登入中…");
       try{
-        const data = await apiPOST({ action:"me", idToken });
+        setStatus("驗證登入中…");
+        const data = await apiPOST({ action: "me", idToken });
+        console.log("me response:", data);
+
         if (!data.ok) throw new Error(data.error || "me failed");
         showLoggedIn(data.user);
-        setStatus("登入成功 ✅", "ok");
-      }catch(e){
+        setStatus("登入成功 ✅ " + (data.user.email || ""), "ok");
+      } catch(e){
         console.error(e);
         localStorage.removeItem("id_token");
         showLoggedOut();
-        setStatus("登入驗證失敗（請確認 GAS /exec 與 Client ID）", "err");
+        setStatus("登入驗證失敗：" + String(e.message || e), "err");
       }
     }
 
     function initGoogleLogin(){
-      const tick = setInterval(()=>{
-        if (!window.google?.accounts?.id) return;
-        clearInterval(tick);
+      if (!window.google || !google.accounts?.id){
+        console.warn("Google SDK not ready");
+        return;
+      }
 
-        google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: async (resp) => {
-            localStorage.setItem("id_token", resp.credential);
-            await restoreLogin();
-          }
-        });
-        google.accounts.id.renderButton($("gsiBtn"), { theme:"outline", size:"large" });
-
-        restoreLogin();
-      }, 50);
-    }
-
-    window.addEventListener("load", ()=>{
-      $("btnGuest").addEventListener("click", ()=>{
-        localStorage.removeItem("id_token");
-        setStatus("訪客模式 ✅（先不開放紀錄功能），可直接進主站看貼文牆。", "ok");
-        location.href = "./app.html?mode=guest";
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (resp) => {
+          localStorage.setItem("id_token", resp.credential);
+          await restoreLogin();
+        },
       });
 
+      google.accounts.id.renderButton($("gsiBtn"), { theme: "outline", size: "large" });
+
+      restoreLogin();
+    }
+
+    /* =========================
+       ✅ 3) Feed / Single
+    ========================= */
+    let allRows = [];
+
+    function renderFeed(rows){
+      const feed = $("feed");
+      const singleWrap = $("singleWrap");
+
+      feed.style.display = "grid";
+      singleWrap.style.display = "none";
+      singleWrap.innerHTML = "";
+      feed.innerHTML = "";
+
+      const sorted = [...rows].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+
+      sorted.forEach(r=>{
+        const card = document.createElement("div");
+        card.className = "post";
+
+        const avatarChar = (r.authorName || r.title || "?").trim().slice(0,1);
+        const imgHtml = r.photoUrl
+          ? `<img class="postImg" src="${escapeHtml(r.photoUrl)}" alt="">`
+          : `<div style="height:260px;background:rgba(255,255,255,.06);"></div>`;
+
+        const shareLink = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id)}`;
+
+        const tags = (r.hashtags || "").trim();
+        const tagsHtml = tags ? `<span class="badge">${escapeHtml(tags)}</span>` : "";
+
+        card.innerHTML = `
+          <div class="postHead">
+            <div class="user">
+              <div class="avatar">${escapeHtml(avatarChar)}</div>
+              <div class="uMeta">
+                <div class="uTitle">${escapeHtml(r.title || "")}</div>
+                <div class="uSub">${escapeHtml(r.category || "")}・${escapeHtml(r.platform || "")}・評分 ${escapeHtml(r.rating || "")}/10</div>
+              </div>
+            </div>
+            <div class="ts">${escapeHtml(fmtTS(r.ts))}</div>
+          </div>
+
+          ${imgHtml}
+
+          <div class="postActions">
+            <button class="chipBtn" data-share="${escapeHtml(r.id)}" type="button">🔗 Share</button>
+            <a class="chipBtn" href="?id=${encodeURIComponent(r.id)}" style="text-decoration:none;">🔎 看貼文</a>
+          </div>
+
+          <div class="postBody">
+            <div class="badges">
+              <span class="badge">日期 ${escapeHtml(r.watchDate || "")}</span>
+              <span class="badge">作者 ${escapeHtml(r.authorName || "匿名")}</span>
+              ${tagsHtml}
+            </div>
+            <div class="text">${escapeHtml(r.review || "")}</div>
+            <div class="badge">${escapeHtml(r.note || "")}</div>
+          </div>
+        `;
+
+        card.querySelector("[data-share]").addEventListener("click", ()=> copyToClipboard(shareLink));
+        feed.appendChild(card);
+      });
+
+      $("count").textContent = `共 ${sorted.length} 筆`;
+    }
+
+    async function loadList(){
+      setStatus("載入貼文牆中…");
+      try{
+        const data = await apiGET({ action: "list_posts" });
+        if (!data.ok) throw new Error(data.error || "list_posts failed");
+        allRows = data.rows || [];
+        applyFilter();
+        setStatus("貼文牆載入完成 ✅", "ok");
+      } catch(e){
+        console.error(e);
+        setStatus("載入失敗：請確認 GAS /exec 與 posts 表欄位 ✅\n" + String(e.message || e), "err");
+      }
+    }
+
+    async function loadSingle(id){
+      setStatus("載入貼文中…");
+      try{
+        const data = await apiGET({ action: "get_post", id });
+        if (!data.ok) throw new Error(data.error || "get_post failed");
+        const r = data.row;
+
+        $("feed").style.display = "none";
+        const singleWrap = $("singleWrap");
+        singleWrap.style.display = "grid";
+        singleWrap.innerHTML = "";
+
+        if (!r){
+          singleWrap.innerHTML = `<div class="status err">找不到這篇貼文（id=${escapeHtml(id)}）</div>`;
+          setStatus("找不到貼文", "err");
+          return;
+        }
+
+        const shareLink = `${location.origin}${location.pathname}?id=${encodeURIComponent(r.id)}`;
+        const imgHtml = r.photoUrl
+          ? `<img class="postImg" src="${escapeHtml(r.photoUrl)}" alt="">`
+          : `<div style="height:260px;background:rgba(255,255,255,.06);"></div>`;
+
+        const tags = (r.hashtags || "").trim();
+        const tagsHtml = tags ? `<span class="badge">${escapeHtml(tags)}</span>` : "";
+
+        const card = document.createElement("div");
+        card.className = "post";
+        card.innerHTML = `
+          <div class="postHead">
+            <div class="user">
+              <div class="avatar">${escapeHtml((r.authorName || r.title || "?").trim().slice(0,1))}</div>
+              <div class="uMeta">
+                <div class="uTitle">${escapeHtml(r.title || "")}</div>
+                <div class="uSub">${escapeHtml(r.category || "")}・${escapeHtml(r.platform || "")}・評分 ${escapeHtml(r.rating || "")}/10</div>
+              </div>
+            </div>
+            <div class="ts">${escapeHtml(fmtTS(r.ts))}</div>
+          </div>
+
+          ${imgHtml}
+
+          <div class="postActions">
+            <button class="chipBtn" id="singleShare" type="button">🔗 Share</button>
+            <a class="chipBtn" href="./" style="text-decoration:none;">⬅ 回到貼文牆</a>
+          </div>
+
+          <div class="postBody">
+            <div class="badges">
+              <span class="badge">日期 ${escapeHtml(r.watchDate || "")}</span>
+              <span class="badge">作者 ${escapeHtml(r.authorName || "匿名")}</span>
+              ${tagsHtml}
+            </div>
+            <div class="text">${escapeHtml(r.review || "")}</div>
+            <div class="badge">${escapeHtml(r.note || "")}</div>
+          </div>
+        `;
+        singleWrap.appendChild(card);
+
+        $("singleShare").addEventListener("click", ()=> copyToClipboard(shareLink));
+        setStatus("貼文載入完成 ✅", "ok");
+      } catch(e){
+        console.error(e);
+        setStatus("載入貼文失敗：" + String(e.message || e), "err");
+      }
+    }
+
+    function applyFilter(){
+      const q = $("q").value.trim().toLowerCase();
+      const rows = q
+        ? allRows.filter(r => ((r.title||"") + " " + (r.hashtags||"") + " " + (r.review||"")).toLowerCase().includes(q))
+        : allRows;
+      renderFeed(rows);
+    }
+
+    /* =========================
+       ✅ 4) Create post
+    ========================= */
+    async function createPost(){
+      const title = $("title").value.trim();
+      if (!title) return setStatus("片名必填", "err");
+
+      $("btnCreate").disabled = true;
+      setStatus("新增中…");
+
+      try{
+        const photoBase64 = await fileToBase64($("photo").files[0]);
+
+        // 作者資訊：若已登入就寫入，訪客就留空
+        const authorSub = currentUser?.sub || "";
+        const authorName = currentUser?.name || "";
+        const authorEmail = currentUser?.email || "";
+
+        const payload = {
+          action: "create_post",
+          title,
+          category: $("category").value,
+          platform: $("platform").value,
+          rating: Number($("rating").value || 0),
+          watchDate: $("watchDate").value,
+          review: $("review").value,
+          note: $("note").value,
+          hashtags: $("hashtags").value,
+          photo: photoBase64,
+          authorSub,
+          authorName,
+          authorEmail
+        };
+
+        const data = await apiPOST(payload);
+        if (!data.ok) throw new Error(data.error || "create_post failed");
+
+        setStatus("新增成功 ✅", "ok");
+
+        $("title").value = "";
+        $("review").value = "";
+        $("note").value = "";
+        $("hashtags").value = "";
+        $("photo").value = "";
+        $("photoPreview").src = "";
+
+        await loadList();
+
+        // mobile：新增完自動回貼文牆
+        if (window.matchMedia("(max-width: 979px)").matches){
+          setActiveTab("feed");
+        }
+      } catch(e){
+        console.error(e);
+        setStatus("新增失敗：" + String(e.message || e), "err");
+      } finally{
+        $("btnCreate").disabled = false;
+      }
+    }
+
+    /* =========================
+       ✅ 5) Tabs (RWD)
+    ========================= */
+    function setActiveTab(name){
+      document.querySelectorAll(".tab").forEach(btn=>{
+        btn.classList.toggle("is-active", btn.dataset.tab === name);
+      });
+
+      const isMobile = window.matchMedia("(max-width: 979px)").matches;
+
+      const panelCreate = $("panelCreate");
+      const panelFeed = $("panelFeed");
+      const panelAbout = $("panelAbout");
+
+      if (!isMobile){
+        // desktop: 左 create, 右 feed
+        panelCreate.style.display = "";
+        panelFeed.style.display = "";
+        panelAbout.style.display = (name === "about") ? "" : "none";
+      } else {
+        // mobile: 單欄切換
+        if (name === "create"){
+          panelCreate.style.display = "";
+          panelFeed.style.display = "none";
+        } else {
+          panelCreate.style.display = "none";
+          panelFeed.style.display = "";
+          panelAbout.style.display = (name === "about") ? "" : "none";
+        }
+      }
+
+      // 單篇 / feed 載入
+      if (name !== "create"){
+        const id = getQueryId();
+        if (id) loadSingle(id);
+        else loadList();
+      }
+    }
+
+    /* =========================
+       ✅ 6) Boot
+    ========================= */
+    window.addEventListener("load", () => {
+      $("watchDate").value = todayISO();
+
+      $("photo").addEventListener("change", async () => {
+        const f = $("photo").files[0];
+        $("photoPreview").src = f ? await fileToBase64(f) : "";
+      });
+
+      $("btnCreate").addEventListener("click", createPost);
+      $("btnReload").addEventListener("click", loadList);
+      $("q").addEventListener("input", applyFilter);
+
+      $("tabs").addEventListener("click", (e) => {
+        const btn = e.target.closest(".tab");
+        if (!btn) return;
+        setActiveTab(btn.dataset.tab);
+      });
+
+      window.addEventListener("resize", () => {
+        const active = document.querySelector(".tab.is-active")?.dataset.tab || "feed";
+        setActiveTab(active);
+      });
+
+      $("btnGuest").addEventListener("click", () => {
+        showGuest();
+        setStatus("已進入訪客模式（可看貼文/可新增貼文；互動功能之後限制）", "warn");
+        setActiveTab("feed");
+      });
+
+      $("btnLogout").addEventListener("click", () => {
+        if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+        localStorage.removeItem("id_token");
+        showLoggedOut();
+        setStatus("已登出", "warn");
+      });
+
+      // 初始化登入
       initGoogleLogin();
+
+      // 預設進貼文牆
+      setActiveTab("feed");
     });
   </script>
 </body>
