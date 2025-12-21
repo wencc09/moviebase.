@@ -1,9 +1,8 @@
 /* MovieBase shared app.js
-   - navbar
    - auth state (guest/user)
-   - login modal
-   - basic permission gates (front-end)
-   - theme toggle (dark/light) + persistence
+   - login modal (supports #loginModal and #modal)
+   - permission gates (front-end)
+   - theme toggle (dark/light) + persistence (one source of truth)
 */
 
 const CONFIG = {
@@ -21,7 +20,7 @@ const MB = {
 const $ = (q, root = document) => root.querySelector(q);
 
 /* =========================
-   Toast (no emoji)
+   Toast
 ========================= */
 function toast(msg) {
   const el = $("#toast");
@@ -71,24 +70,13 @@ function setModeUser(user) {
 }
 
 function renderAuthUI() {
+  const isUser = MB.state.mode === "user" && MB.state.user;
+
   // common header widgets (may not exist on all pages)
   const badge = $("#authBadge");
   const name = $("#authName");
   const pic = $("#authPic");
 
-  const btnLogout = $("#btnLogout");
-  const btnOpenLogin = $("#btnOpenLogin");
-  const btnGuest = $("#btnGuest");
-
-  // some pages (index) have different ids
-  const loginState = $("#loginState");
-  const btnLogin = $("#btnLogin");
-  const btnLogin2 = $("#btnLogin2");
-  const btnGuest2 = $("#btnGuest2");
-
-  const isUser = MB.state.mode === "user" && MB.state.user;
-
-  // update common badge area
   if (badge) badge.textContent = isUser ? "目前：已登入" : "目前：訪客";
   if (name) name.textContent = isUser ? (MB.state.user.name || MB.state.user.email || "") : "Guest";
   if (pic) {
@@ -97,30 +85,46 @@ function renderAuthUI() {
   }
 
   // index header state
+  const loginState = $("#loginState");
   if (loginState) {
     if (isUser) {
       const nm = MB.state.user.name || MB.state.user.email || "";
       loginState.textContent = nm ? `目前：已登入（${nm}）` : "目前：已登入";
+    } else if (MB.state.mode === "guest") {
+      loginState.textContent = "目前：訪客";
     } else {
       loginState.textContent = "目前：未登入";
     }
   }
 
-  // show/hide login/guest vs logout + account
-  // (when logged in -> hide login + guest buttons)
   const show = (el, on) => { if (el) el.style.display = on ? "" : "none"; };
 
-  show(btnLogout, isUser);
-  show(btnOpenLogin, !isUser);
-  show(btnGuest, !isUser);
+  // buttons (shared ids)
+  const btnLogout = $("#btnLogout");
+  const btnLogoutTop = $("#btnLogoutTop"); // index topbar logout
+  const btnOpenLogin = $("#btnOpenLogin");
+  const btnGuest = $("#btnGuest");
 
-  show(btnLogin, !isUser);
-  show(btnLogin2, !isUser);
-  show(btnGuest2, !isUser);
+  // index buttons
+  const btnLogin = $("#btnLogin");
+  const btnLogin2 = $("#btnLogin2");
+  const btnGuest2 = $("#btnGuest2");
 
-  // if some pages have a "登入/訪客" quick switch button
+  // 規則：一旦確認為「已登入」或「訪客」 → 登入/訪客按鈕都要消失，只留登出
+  const decided = (MB.state.mode === "guest") || isUser;
+
+  show(btnLogout, decided);
+  show(btnLogoutTop, decided);
+
+  show(btnOpenLogin, !decided);
+  show(btnGuest, !decided);
+
+  show(btnLogin, !decided);
+  show(btnLogin2, !decided);
+  show(btnGuest2, !decided);
+
   const btnLoginGuest = $("#btnLoginGuest");
-  show(btnLoginGuest, !isUser);
+  show(btnLoginGuest, !decided);
 }
 
 /* =========================
@@ -136,40 +140,48 @@ function requireLogin(featureName = "此功能") {
 }
 
 /* =========================
-   Navbar active
+   Modal (support index + app variants)
 ========================= */
-function setActiveNav() {
-  const path = location.pathname.split("/").pop() || "index.html";
-  document.querySelectorAll("[data-nav]").forEach(a => {
-    a.classList.toggle("is-active", a.getAttribute("href") === path);
-  });
+function getModalEl() {
+  return $("#loginModal") || $("#modal");
+}
+
+function openLoginModal() {
+  const m = getModalEl();
+  if (!m) return;
+  m.classList.add("is-open");
+  m.classList.add("open");     // index uses .open
+  m.setAttribute("aria-hidden", "false");
+}
+
+function closeLoginModal() {
+  const m = getModalEl();
+  if (!m) return;
+  m.classList.remove("is-open");
+  m.classList.remove("open");
+  m.setAttribute("aria-hidden", "true");
 }
 
 /* =========================
-   Modal
-========================= */
-function openLoginModal() { $("#loginModal")?.classList.add("is-open"); }
-function closeLoginModal() { $("#loginModal")?.classList.remove("is-open"); }
-
-/* =========================
-   Theme Toggle (fix: prevent link bubbling)
+   Theme Toggle (one source of truth)
 ========================= */
 function applyTheme(theme) {
   const t = theme === "light" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", t);
+
+  // unify + keep backward compatibility
   localStorage.setItem("theme", t);
+  localStorage.setItem("moviebase_theme", t);
 }
 
 function initThemeToggle() {
   const btn = $("#themeToggle");
   if (!btn) return;
 
-  // restore
-  const saved = localStorage.getItem("theme");
+  // restore: try new key -> old key
+  const saved = localStorage.getItem("moviebase_theme") || localStorage.getItem("theme");
   if (saved === "light" || saved === "dark") applyTheme(saved);
 
-  // IMPORTANT: many pages put this button inside <a> or other clickable header
-  // so we must prevent bubbling/navigation.
   btn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -217,46 +229,47 @@ function initGoogle() {
    Boot
 ========================= */
 async function boot() {
-  setActiveNav();
   initThemeToggle();
 
-  // close modal by backdrop click
-  $("#loginModal")?.addEventListener("click", (e) => {
-    if (e.target && e.target.id === "loginModal") closeLoginModal();
+  // modal close buttons (support index ids)
+  $("#modalClose")?.addEventListener("click", closeLoginModal);
+
+  // click backdrop to close
+  const m = getModalEl();
+  m?.addEventListener("click", (e) => {
+    if (e.target === m) closeLoginModal();
   });
 
-  // buttons (may not exist on all pages)
+  // open modal buttons
   $("#btnOpenLogin")?.addEventListener("click", openLoginModal);
-
-  // index buttons
   $("#btnLogin")?.addEventListener("click", openLoginModal);
   $("#btnLogin2")?.addEventListener("click", openLoginModal);
 
-  $("#btnGuest")?.addEventListener("click", () => {
+  // guest buttons
+  const guestHandler = () => {
     setModeGuest();
     closeLoginModal();
     toast("已用訪客模式進入（禁止紀錄與發文）");
-  });
-  $("#btnGuest2")?.addEventListener("click", () => {
-    setModeGuest();
-    closeLoginModal();
-    toast("已用訪客模式進入（禁止紀錄與發文）");
-  });
+  };
+  $("#btnGuest")?.addEventListener("click", guestHandler);
+  $("#btnGuest2")?.addEventListener("click", guestHandler);
 
-  $("#btnLogout")?.addEventListener("click", () => {
+  // logout buttons
+  const logoutHandler = () => {
     try {
       if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
     } catch (_) {}
     setModeGuest();
     toast("已登出");
-  });
+  };
+  $("#btnLogout")?.addEventListener("click", logoutHandler);
+  $("#btnLogoutTop")?.addEventListener("click", logoutHandler);
 
   // restore mode / user
   const savedMode = localStorage.getItem("mode");
   if (savedMode === "guest") {
     setModeGuest();
   } else {
-    // try id_token
     try {
       const user = await verifyMe();
       if (user) setModeUser(user);
