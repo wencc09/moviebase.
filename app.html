@@ -4,16 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜主站</title>
+
+  <!-- Theme (與 index 共用) -->
+  <link rel="stylesheet" href="./assets/theme.css">
+
+  <!-- Google Sign-In (GIS) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <style>
-    :root{
-      --bg:#070A12;
-      --card:rgba(14,20,40,.62);
-      --line:rgba(255,255,255,.10);
-      --text:#e8ecff;
-      --muted:rgba(232,236,255,.72);
-      --neon:#22d3ee;
-      --neon2:#a78bfa;
-    }
     *{box-sizing:border-box}
     body{
       margin:0; min-height:100vh; color:var(--text);
@@ -28,7 +26,7 @@
       position:sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
       background: linear-gradient(180deg, rgba(7,10,18,.78), rgba(7,10,18,.35));
-      border-bottom:1px solid var(--line);
+      border-bottom:1px solid var(--stroke);
     }
     .top{
       max-width:1200px;margin:0 auto;padding:14px 16px;
@@ -47,7 +45,7 @@
       display:flex;gap:8px;flex-wrap:wrap; justify-content:flex-end;
     }
     .pill{
-      border:1px solid var(--line);
+      border:1px solid var(--stroke);
       background: rgba(255,255,255,.05);
       color:var(--text);
       padding:9px 12px;border-radius:999px;cursor:pointer;
@@ -55,20 +53,19 @@
     }
     .pill.active{border-color: rgba(34,211,238,.45); box-shadow:0 0 0 4px rgba(34,211,238,.10)}
     .card{
-      border:1px solid var(--line);
+      border:1px solid var(--stroke);
       background: rgba(255,255,255,.04);
       border-radius:22px;
       padding:16px;
       box-shadow: 0 18px 60px rgba(0,0,0,.28);
     }
-    .grid{display:grid;gap:12px}
     .h1{font-size:clamp(18px, 2.2vw, 26px); font-weight:900; margin:0 0 6px}
     .p{margin:0;color:var(--muted); line-height:1.7; font-size:13px}
 
     /* Mobile bottom nav */
     .bottomNav{
       position:fixed; left:12px; right:12px; bottom:12px; z-index:20;
-      border:1px solid var(--line);
+      border:1px solid var(--stroke);
       background: rgba(7,10,18,.66);
       backdrop-filter: blur(12px);
       border-radius:18px;
@@ -148,17 +145,16 @@
     <button class="bbtn" data-tab="account">帳戶</button>
   </nav>
 
+  <!-- ✅ 只留分頁切換，不要再寫第二套 theme -->
   <script>
     function setTab(name){
       const tabs = ["about","records","hall","account"];
       tabs.forEach(t=>{
         document.getElementById("tab-"+t).style.display = (t===name) ? "" : "none";
       });
-
       document.querySelectorAll("[data-tab]").forEach(btn=>{
         btn.classList.toggle("active", btn.dataset.tab === name);
       });
-
       history.replaceState(null,"", "#"+name);
     }
 
@@ -177,23 +173,9 @@
         setTab(b.dataset.tab);
       });
     });
-    
-    // Theme toggle (dark/light)
-(function initTheme(){
-  const key = "moviebase_theme";
-  const saved = localStorage.getItem(key) || "dark";
-  document.documentElement.dataset.theme = saved;
-
-  const btn = document.getElementById("themeToggle");
-  if(!btn) return;
-
-  btn.addEventListener("click", () => {
-    const next = (document.documentElement.dataset.theme === "dark") ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem(key, next);
-  });
-})();
-
   </script>
+
+  <!-- ✅ 共用邏輯：theme + auth（你之後主站也會用到） -->
+  <script src="./assets/app.js" defer></script>
 </body>
 </html>
