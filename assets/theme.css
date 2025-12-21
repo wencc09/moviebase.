@@ -1,56 +1,89 @@
-/* assets/theme.css */
+/* =========================
+   MovieBase Theme System
+   Dark (Cyber Neon) / Light (Cute Soft)
+========================= */
+
 :root{
+  /* Base background */
   --bg0:#0b1020;
   --bg1:#0e1425;
   --bg2:#1e2940;
 
+  /* Glass cards */
   --card: rgba(255,255,255,.06);
   --card2: rgba(255,255,255,.09);
   --stroke: rgba(255,255,255,.10);
 
+  /* Text */
   --text:#eaf0ff;
   --muted: rgba(234,240,255,.72);
 
+  /* Accents */
   --accent:#84e3e8;   /* cyan */
   --accent2:#e25f9e;  /* magenta */
   --accent3:#f58e5f;  /* orange */
   --accent4:#267cb1;  /* blue */
-  --glow: 0 0 24px rgba(132,227,232,.28), 0 0 56px rgba(226,95,158,.18);
+
+  /* Glow */
+  --glow: 0 0 24px rgba(132,227,232,.28),
+          0 0 56px rgba(226,95,158,.18);
+
+  /* Neon background spots (dark) */
+  --spot1: rgba(132,227,232,.18);
+  --spot2: rgba(226,95,158,.18);
+  --spot3: rgba(245,142,95,.16);
 }
 
 :root[data-theme="light"]{
+  /* Base background */
   --bg0:#fff8ec;
   --bg1:#fffdf8;
   --bg2:#ffe8f0;
 
+  /* Glass cards */
   --card: rgba(255,255,255,.75);
   --card2: rgba(255,255,255,.88);
   --stroke: rgba(10,20,40,.10);
 
+  /* Text */
   --text:#0c1326;
   --muted: rgba(12,19,38,.72);
 
+  /* Accents (cute palette) */
   --accent:#862983;   /* purple */
   --accent2:#ff8da3;  /* pink */
   --accent3:#ffc66e;  /* yellow */
   --accent4:#267cb1;  /* blue */
+
+  /* Glow */
   --glow: 0 10px 40px rgba(134,41,131,.18);
+
+  /* Soft background spots (light) */
+  --spot1: rgba(38,124,177,.14);
+  --spot2: rgba(255,141,163,.16);
+  --spot3: rgba(255,198,110,.18);
 }
 
-/* Page background with “light spots” */
+/* =========================
+   Global background
+========================= */
 html,body{ height:100%; }
+
 body{
   margin:0;
   color:var(--text);
   background:
-    radial-gradient(1200px 600px at 12% 22%, rgba(132,227,232,.18), transparent 60%),
-    radial-gradient(900px 520px at 78% 18%, rgba(226,95,158,.18), transparent 62%),
-    radial-gradient(820px 560px at 72% 78%, rgba(245,142,95,.16), transparent 58%),
+    radial-gradient(1200px 600px at 12% 22%, var(--spot1), transparent 60%),
+    radial-gradient(900px 520px at 78% 18%, var(--spot2), transparent 62%),
+    radial-gradient(820px 560px at 72% 78%, var(--spot3), transparent 58%),
     linear-gradient(135deg, var(--bg1), var(--bg0) 55%, var(--bg2));
   background-attachment: fixed;
+  transition: background .4s ease, color .2s ease;
 }
 
-/* Glass card baseline */
+/* =========================
+   Glass cards
+========================= */
 .glass{
   background: linear-gradient(180deg, var(--card2), var(--card));
   border: 1px solid var(--stroke);
@@ -60,7 +93,9 @@ body{
   box-shadow: 0 16px 44px rgba(0,0,0,.28);
 }
 
-/* Neon outline helper */
+/* =========================
+   Neon outline helper
+========================= */
 .neon{
   position: relative;
 }
@@ -70,13 +105,20 @@ body{
   inset:-1px;
   border-radius: inherit;
   pointer-events:none;
-  background: linear-gradient(120deg, rgba(132,227,232,.65), rgba(226,95,158,.55), rgba(245,142,95,.50));
+  background: linear-gradient(
+    120deg,
+    rgba(132,227,232,.65),
+    rgba(226,95,158,.55),
+    rgba(245,142,95,.50)
+  );
   filter: blur(10px);
   opacity:.45;
   z-index:-1;
 }
 
-/* Buttons */
+/* =========================
+   Buttons
+========================= */
 .btn{
   appearance:none;
   border: 1px solid var(--stroke);
@@ -85,16 +127,44 @@ body{
   padding: 10px 14px;
   border-radius: 999px;
   cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  transition:
+    transform .12s ease,
+    box-shadow .12s ease,
+    background .12s ease;
 }
+
 .btn:hover{
   transform: translateY(-1px);
   box-shadow: var(--glow);
   background: rgba(255,255,255,.10);
 }
-.btn.primary{
+
+/* primary button (support both styles) */
+.btn.primary,
+.btn.btn-primary{
   border-color: transparent;
-  background: linear-gradient(90deg, rgba(132,227,232,.85), rgba(226,95,158,.75));
+  background: linear-gradient(
+    90deg,
+    rgba(132,227,232,.85),
+    rgba(226,95,158,.75)
+  );
   color: #091022;
   font-weight: 700;
 }
+
+/* =========================
+   Small helpers
+========================= */
+.pill{
+  display:inline-block;
+  padding:6px 10px;
+  font-size:12px;
+  border-radius:999px;
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,.06);
+  color:var(--muted);
+}
+
+.h1{ font-size: clamp(26px, 3vw, 34px); font-weight:700; }
+.h2{ font-size: clamp(18px, 2.2vw, 22px); font-weight:700; }
+.p{ font-size:15px; line-height:1.7; color:var(--muted); }
