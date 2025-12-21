@@ -2,632 +2,669 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>MovieBase｜漂浮影廳 × 觀影日記</title>
-  <meta name="theme-color" content="#0B0F19" />
-
-  <!-- Fonts (特別一點，但仍好讀) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
+    /* =============== 基本 =============== */
     :root{
-      --bg0:#0B0F19;
-      --bg1:#0F172A;
-      --glass: rgba(16,26,51,.62);
-      --stroke: rgba(125,211,238,.18);
-      --text:#E5E7EB;
-      --muted:#A1A1AA;
-      --purple:#7C3AED;
-      --cyan:#22D3EE;
-      --pink:#FB7185;
-      --ok:#34D399;
-      --danger:#FB7185;
-      --shadow: 0 30px 120px rgba(0,0,0,.55);
+      --bg0:#05070e;
+      --bg1:#071a2a;
+      --bg2:#2b0a3d;
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.06);
+      --line: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --shadow: 0 18px 45px rgba(0,0,0,.38);
       --radius: 22px;
+      --accent:#7c5cff;
+      --accent2:#3ee6ff;
+      --ok:#4ade80;
+      --warn:#fbbf24;
+      --danger:#fb7185;
+      --focus: 0 0 0 3px rgba(124,92,255,.35);
     }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
       color:var(--text);
-      font-family:"Space Grotesk","Noto Sans TC",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", Segoe UI, Roboto, Arial, sans-serif;
       background:
-        radial-gradient(900px 450px at 15% 10%, rgba(124,58,237,.35), transparent 60%),
-        radial-gradient(900px 520px at 85% 15%, rgba(34,211,238,.22), transparent 60%),
-        radial-gradient(900px 520px at 70% 80%, rgba(251,113,133,.14), transparent 55%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
+        radial-gradient(1200px 650px at 20% 10%, rgba(124,92,255,.32), transparent 55%),
+        radial-gradient(900px 520px at 88% 18%, rgba(62,230,255,.18), transparent 55%),
+        radial-gradient(900px 600px at 65% 85%, rgba(251,113,133,.14), transparent 60%),
+        linear-gradient(120deg, var(--bg0), var(--bg1) 45%, var(--bg2));
       overflow-x:hidden;
     }
 
-    /* subtle film grain */
-    body::before{
-      content:"";
-      position:fixed; inset:0;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+    /* 顆粒/底片紋理（不全白、很像作品集那種質感） */
+    .grain{
+      position:fixed; inset:-40%;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
       mix-blend-mode:overlay;
-      opacity:.18;
-      pointer-events:none;
+      opacity:.12;
+      transform:rotate(8deg);
+      animation: grainMove 10s steps(10) infinite;
+    }
+    @keyframes grainMove{
+      0%{transform:translate3d(0,0,0) rotate(8deg)}
+      25%{transform:translate3d(-2%,3%,0) rotate(8deg)}
+      50%{transform:translate3d(3%,-2%,0) rotate(8deg)}
+      75%{transform:translate3d(-3%,-1%,0) rotate(8deg)}
+      100%{transform:translate3d(0,0,0) rotate(8deg)}
     }
 
-    /* floating particles */
-    .stars{
-      position:fixed; inset:-20vh -10vw;
-      background:
-        radial-gradient(2px 2px at 15% 25%, rgba(255,255,255,.22), transparent 60%),
-        radial-gradient(2px 2px at 65% 15%, rgba(255,255,255,.18), transparent 60%),
-        radial-gradient(1.5px 1.5px at 80% 35%, rgba(255,255,255,.14), transparent 60%),
-        radial-gradient(2px 2px at 30% 70%, rgba(255,255,255,.16), transparent 60%),
-        radial-gradient(1.5px 1.5px at 70% 78%, rgba(255,255,255,.12), transparent 60%);
-      filter: blur(.2px);
-      animation: drift 14s ease-in-out infinite alternate;
-      opacity:.9;
-      pointer-events:none;
+    /* 浮動光點（漂浮影廳感） */
+    .orbs{position:fixed; inset:0; pointer-events:none; overflow:hidden;}
+    .orb{
+      position:absolute; width:22vmin; height:22vmin; border-radius:999px;
+      filter: blur(22px);
+      opacity:.28;
+      animation: float 10s ease-in-out infinite;
     }
-    @keyframes drift{
-      from{transform:translate3d(-10px,-10px,0)}
-      to{transform:translate3d(12px,16px,0)}
+    .orb.a{left:-6vmin; top:18vmin; background:rgba(124,92,255,.7)}
+    .orb.b{right:-8vmin; top:22vmin; background:rgba(62,230,255,.55); animation-duration:12s}
+    .orb.c{left:20vmin; bottom:-10vmin; background:rgba(251,113,133,.55); animation-duration:14s}
+    @keyframes float{
+      0%,100%{transform:translateY(0) translateX(0) scale(1)}
+      50%{transform:translateY(-18px) translateX(12px) scale(1.06)}
     }
 
+    a{color:inherit}
     .wrap{
       min-height:100%;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:28px 18px 48px;
+      padding: 22px 16px;
     }
 
+    /* =============== 入口容器 =============== */
     .stage{
-      width:min(1100px, 100%);
+      width:min(1180px, 100%);
       display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap:18px;
+      grid-template-columns: 1.05fr .95fr;
+      gap:16px;
       align-items:stretch;
     }
-
-    @media (max-width: 920px){
-      .stage{grid-template-columns: 1fr; gap:14px}
+    @media (max-width: 980px){
+      .stage{grid-template-columns:1fr; gap:12px;}
     }
 
     .panel{
-      background:var(--glass);
-      border:1px solid var(--stroke);
-      border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
       overflow:hidden;
       position:relative;
     }
-
-    /* neon edge */
-    .panel::after{
+    .panel::before{
       content:"";
       position:absolute; inset:-2px;
-      background: radial-gradient(600px 200px at 20% 20%, rgba(124,58,237,.25), transparent 65%),
-                  radial-gradient(600px 220px at 80% 10%, rgba(34,211,238,.18), transparent 60%),
-                  radial-gradient(560px 240px at 70% 90%, rgba(251,113,133,.12), transparent 60%);
+      background:
+        radial-gradient(600px 220px at 20% 12%, rgba(124,92,255,.22), transparent 60%),
+        radial-gradient(520px 220px at 78% 25%, rgba(62,230,255,.16), transparent 58%);
+      opacity:.9;
       pointer-events:none;
     }
 
-    .hero{
-      padding:26px 26px 22px;
-      display:flex;
-      flex-direction:column;
-      gap:14px;
+    .inner{position:relative; padding:22px;}
+    @media (max-width: 520px){
+      .inner{padding:18px;}
     }
 
-    .brand{
-      display:flex; align-items:center; gap:12px;
-    }
+    /* =============== 左側：Logo + 大介紹 =============== */
+    .brandRow{display:flex; align-items:center; gap:14px; margin-bottom:14px;}
     .logo{
-      width:42px;height:42px;border-radius:14px;
-      background: linear-gradient(135deg, rgba(124,58,237,.9), rgba(34,211,238,.85));
-      box-shadow: 0 12px 40px rgba(124,58,237,.25);
+      width:46px; height:46px; border-radius:14px;
+      background: linear-gradient(135deg, rgba(124,92,255,.9), rgba(62,230,255,.65));
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      display:grid; place-items:center;
       position:relative;
       overflow:hidden;
     }
-    .logo::before{
+    .logo::after{
       content:"";
-      position:absolute; inset:-30%;
-      background: conic-gradient(from 220deg, rgba(255,255,255,.0), rgba(255,255,255,.55), rgba(255,255,255,.0));
-      animation: shine 2.6s ease-in-out infinite;
+      position:absolute; inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.6), transparent 55%);
+      transform:rotate(20deg);
       opacity:.55;
     }
-    @keyframes shine{
-      0%{transform:translateX(-20%) rotate(0deg)}
-      60%{transform:translateX(30%) rotate(30deg)}
-      100%{transform:translateX(35%) rotate(40deg)}
-    }
-
-    .brand h1{
-      margin:0;
-      font-size:20px;
-      letter-spacing:.2px;
-      line-height:1.1;
-    }
-    .brand p{
-      margin:2px 0 0;
-      font-size:12px;
-      color:var(--muted);
-    }
+    .logo span{font-weight:900; letter-spacing:.5px;}
+    .brandTitle{display:flex; flex-direction:column; line-height:1.1}
+    .brandTitle b{font-size:18px}
+    .brandTitle small{color:var(--muted); font-size:12px; margin-top:4px}
 
     .headline{
-      margin:8px 0 0;
-      font-size: clamp(28px, 3.2vw, 40px);
-      line-height:1.12;
+      font-size: clamp(26px, 4.1vw, 40px);
+      font-weight: 900;
       letter-spacing:.2px;
-      font-weight:700;
+      margin: 8px 0 12px;
     }
-
     .sub{
-      margin:0;
-      color:rgba(229,231,235,.85);
-      font-size:14px;
-      line-height:1.7;
-      max-width: 56ch;
-    }
-
-    .chips{
-      display:flex; flex-wrap:wrap; gap:10px;
-      margin-top:6px;
-    }
-    .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      background: rgba(2,6,23,.32);
-      border:1px solid rgba(255,255,255,.08);
-      color:rgba(229,231,235,.9);
-      backdrop-filter: blur(8px);
-      display:flex; align-items:center; gap:8px;
-    }
-    .dot{
-      width:8px;height:8px;border-radius:999px;
-      background: var(--cyan);
-      box-shadow: 0 0 14px rgba(34,211,238,.5);
-    }
-    .dot.p{background:var(--purple); box-shadow:0 0 14px rgba(124,58,237,.5)}
-    .dot.k{background:var(--pink); box-shadow:0 0 14px rgba(251,113,133,.45)}
-
-    .ctaRow{
-      margin-top:10px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .btn{
-      appearance:none;
-      border:none;
-      border-radius:14px;
-      padding:12px 14px;
-      font-weight:700;
-      cursor:pointer;
-      color:var(--text);
-      background: rgba(2,6,23,.35);
-      border:1px solid rgba(255,255,255,.1);
-      display:inline-flex; align-items:center; gap:10px;
-      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-    }
-    .btn:hover{ transform: translateY(-1px); border-color: rgba(34,211,238,.22); box-shadow: 0 18px 50px rgba(0,0,0,.28);}
-    .btnPrimary{
-      background: linear-gradient(135deg, rgba(124,58,237,.92), rgba(34,211,238,.78));
-      border: 1px solid rgba(255,255,255,.16);
-    }
-    .btnGhost{
-      background: transparent;
-    }
-    .btnSmall{
-      padding:10px 12px;
-      border-radius:12px;
-      font-size:13px;
-    }
-    .hint{
       color:var(--muted);
-      font-size:12px;
+      line-height:1.7;
+      font-size: 14px;
+      margin:0 0 16px;
+      max-width: 62ch;
     }
 
-    /* Right panel (preview / motion) */
-    .preview{
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .screen{
-      flex:1;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.12);
-      background:
-        linear-gradient(180deg, rgba(2,6,23,.48), rgba(2,6,23,.18)),
-        radial-gradient(600px 260px at 20% 25%, rgba(124,58,237,.24), transparent 60%),
-        radial-gradient(520px 260px at 80% 20%, rgba(34,211,238,.18), transparent 60%);
-      position:relative;
-      overflow:hidden;
-    }
-    .marquee{
-      position:absolute; left:18px; right:18px; top:18px;
-      padding:14px 14px;
-      border-radius:16px;
-      background: rgba(15,23,42,.42);
-      border:1px solid rgba(255,255,255,.10);
+    /* 特色 tags */
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+    .chip{
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background: rgba(0,0,0,.12);
+      color: rgba(255,255,255,.84);
+      font-size:12px;
+      display:flex; align-items:center; gap:8px;
       backdrop-filter: blur(10px);
     }
-    .marqueeTitle{
-      display:flex; align-items:center; gap:10px;
-      font-weight:800;
-      letter-spacing:.4px;
-    }
-    .marqueeTitle span{
-      display:inline-block;
-      animation: pop 1.6s ease-in-out infinite;
-      transform-origin: left bottom;
-    }
-    .marqueeTitle span:nth-child(2){animation-delay:.12s}
-    .marqueeTitle span:nth-child(3){animation-delay:.22s}
-    .marqueeTitle span:nth-child(4){animation-delay:.32s}
-    @keyframes pop{
-      0%,100%{transform:translateY(0)}
-      45%{transform:translateY(-4px)}
-    }
-    .marqueeText{
-      margin:8px 0 0;
-      color:rgba(229,231,235,.82);
-      font-size:13px;
-      line-height:1.65;
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(62,230,255,.12);
     }
 
-    .posterRow{
-      position:absolute; left:18px; right:18px; bottom:18px;
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
-    .poster{
-      height:110px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(2,6,23,.38);
-      overflow:hidden;
-      position:relative;
-      transform: translateZ(0);
-      transition: transform .18s ease, box-shadow .18s ease;
-    }
-    .poster:hover{ transform: translateY(-2px); box-shadow: 0 18px 60px rgba(0,0,0,.34);}
-    .poster::before{
-      content:"";
-      position:absolute; inset:-1px;
-      background:
-        radial-gradient(240px 120px at 20% 30%, rgba(124,58,237,.25), transparent 65%),
-        radial-gradient(240px 120px at 80% 20%, rgba(34,211,238,.20), transparent 60%),
-        radial-gradient(240px 140px at 60% 85%, rgba(251,113,133,.12), transparent 60%);
-      opacity:.95;
-    }
-    .poster::after{
-      content:"上映中";
-      position:absolute; left:12px; top:12px;
-      font-size:11px;
-      padding:6px 8px;
+    /* Skip */
+    .skip{
+      position:fixed;
+      right:14px; bottom:14px;
+      z-index:30;
+      padding:10px 12px;
       border-radius:999px;
-      background: rgba(0,0,0,.25);
-      border:1px solid rgba(255,255,255,.12);
-      color:rgba(229,231,235,.9);
-      letter-spacing:.4px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.20);
+      color: rgba(255,255,255,.86);
+      backdrop-filter: blur(12px);
+      cursor:pointer;
+      display:flex; align-items:center; gap:8px;
+      transition:.2s;
+    }
+    .skip:hover{transform:translateY(-1px)}
+    .skip:focus{outline:none; box-shadow:var(--focus)}
+
+    /* =============== 右側：入口流程卡（開場→介紹→一定彈登入） =============== */
+    .flowTop{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; margin-bottom:12px;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.16);
+      color: rgba(255,255,255,.86);
+      font-size:12px;
+      backdrop-filter: blur(10px);
+      white-space:nowrap;
+    }
+    .pulse{
+      width:10px;height:10px;border-radius:999px;background:var(--warn);
+      box-shadow:0 0 0 0 rgba(251,191,36,.4);
+      animation:pulse 1.4s ease-out infinite;
+    }
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(251,191,36,.4)}
+      100%{box-shadow:0 0 0 12px rgba(251,191,36,0)}
     }
 
-    @media (max-width: 920px){
-      .posterRow{ grid-template-columns: 1fr; }
-      .poster{ height:90px; }
+    .screen{
+      border-radius: 18px;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.12));
+      padding:16px;
+      min-height: 320px;
+      display:grid;
+      align-content:start;
+      gap:12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .screen::after{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(600px 160px at 20% -10%, rgba(62,230,255,.18), transparent 60%);
+      pointer-events:none;
     }
 
-    /* Modal */
-    .overlay{
+    .type{
+      font-size:12px;
+      color: var(--muted);
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      margin-top:2px;
+    }
+    .bigline{
+      font-size: 16px;
+      line-height:1.6;
+      margin:0;
+      color: rgba(255,255,255,.90);
+    }
+
+    .btnRow{display:flex; flex-wrap:wrap; gap:10px; margin-top:6px;}
+    .btn{
+      border:none;
+      border-radius: 14px;
+      padding: 12px 14px;
+      cursor:pointer;
+      color: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.10);
+      border:1px solid var(--line);
+      backdrop-filter: blur(12px);
+      transition:.18s;
+      font-weight:700;
+      display:inline-flex; align-items:center; gap:10px;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn:focus{outline:none; box-shadow:var(--focus)}
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(62,230,255,.35));
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn.ghost{
+      background: rgba(0,0,0,.14);
+    }
+    .btn small{font-weight:600; opacity:.85}
+
+    /* =============== Modal（一定彈出） =============== */
+    .modalMask{
       position:fixed; inset:0;
-      background: rgba(0,0,0,.55);
+      background: rgba(0,0,0,.56);
+      backdrop-filter: blur(10px);
       display:none;
       align-items:center;
       justify-content:center;
-      padding:18px;
+      padding: 18px;
       z-index:50;
     }
-    .overlay.show{ display:flex; }
-
     .modal{
-      width:min(560px, 100%);
-      border-radius:20px;
-      background: rgba(12,18,35,.78);
-      border:1px solid rgba(255,255,255,.12);
-      backdrop-filter: blur(16px);
-      box-shadow: 0 40px 160px rgba(0,0,0,.62);
+      width:min(540px, 100%);
+      border-radius: 22px;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(20,22,34,.92), rgba(10,12,20,.82));
+      box-shadow: 0 30px 80px rgba(0,0,0,.55);
       overflow:hidden;
-      transform: scale(.98);
-      opacity:.0;
-      animation: modalIn .2s ease forwards;
+      position:relative;
     }
-    @keyframes modalIn{
-      to{ transform: scale(1); opacity: 1; }
+    .modal::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(620px 220px at 20% 0%, rgba(124,92,255,.25), transparent 60%),
+        radial-gradient(520px 220px at 90% 30%, rgba(62,230,255,.18), transparent 60%);
+      opacity:.95;
+      pointer-events:none;
     }
-    .modalHead{
-      padding:16px 18px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .modalHead b{ font-size:14px; letter-spacing:.2px}
+    .modalIn{position:relative; padding:18px;}
+    .modalHead{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+    .modalTitle{font-weight:900; font-size:16px; margin:0;}
+    .modalDesc{margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.6;}
     .x{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      width:38px; height:38px; border-radius:12px;
       cursor:pointer;
-      width:34px;height:34px;border-radius:12px;
-      display:grid;place-items:center;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(2,6,23,.35);
-      color: rgba(229,231,235,.9);
     }
-    .modalBody{ padding:18px; display:flex; flex-direction:column; gap:12px; }
-    .row{
-      display:flex; gap:10px; flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .status{
-      font-size:12px;
-      color: rgba(229,231,235,.85);
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(2,6,23,.28);
-      display:inline-flex; gap:8px; align-items:center;
-    }
-    .status .sDot{
-      width:8px;height:8px;border-radius:99px;
-      background: rgba(161,161,170,.9);
-    }
-    .status.ok .sDot{ background: var(--ok); box-shadow:0 0 14px rgba(52,211,153,.45); }
+    .x:hover{transform:translateY(-1px)}
+    .x:focus{outline:none; box-shadow:var(--focus)}
 
-    .err{
-      display:none;
-      font-size:13px;
-      color: rgba(255,255,255,.92);
-      background: rgba(251,113,133,.10);
-      border:1px solid rgba(251,113,133,.22);
-      padding:10px 12px;
-      border-radius:14px;
+    .sep{height:1px; background: rgba(255,255,255,.10); margin:14px 0;}
+    .hint{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.82);
+      font-size:12px;
       line-height:1.6;
     }
-    .err.show{ display:block; }
+    .hint b{color:rgba(255,255,255,.92)}
+    .hint .k{padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
+    .status{margin-top:10px; font-size:12px; color:var(--muted)}
+    .status.ok{color:var(--ok)}
+    .status.err{color:var(--danger)}
 
-    /* Footer */
-    .footer{
-      margin-top:10px;
-      padding: 0 4px;
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      color: rgba(161,161,170,.9);
-      font-size:12px;
-      flex-wrap:wrap;
+    /* 小動畫：打字感 */
+    .typing{
+      display:inline-block;
+      position:relative;
+      white-space:nowrap;
     }
-    a{color:rgba(34,211,238,.92); text-decoration:none}
-    a:hover{text-decoration:underline}
+    .typing::after{
+      content:"";
+      display:inline-block;
+      width:10px;height:16px;margin-left:6px;
+      border-right:2px solid rgba(255,255,255,.65);
+      transform:translateY(2px);
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink{50%{opacity:0}}
+
+    /* 降低動態（無障礙） */
+    @media (prefers-reduced-motion: reduce){
+      .grain,.orb{animation:none}
+      .typing::after{animation:none}
+      .btn:hover,.x:hover,.skip:hover{transform:none}
+    }
   </style>
 </head>
-<body>
-  <div class="stars"></div>
 
-  <main class="wrap">
-    <section class="stage">
-      <!-- Left: intro -->
-      <div class="panel">
-        <div class="hero">
-          <div class="brand">
-            <div class="logo" aria-hidden="true"></div>
-            <div>
-              <h1>MovieBase</h1>
-              <p>漂浮影廳 × 觀影日記（GitHub Pages 前端 + Apps Script 後端）</p>
+<body>
+  <div class="grain"></div>
+  <div class="orbs">
+    <div class="orb a"></div>
+    <div class="orb b"></div>
+    <div class="orb c"></div>
+  </div>
+
+  <button class="skip" id="btnSkip" type="button" title="跳過介紹">
+    ⤼ Skip <span style="opacity:.75">介紹</span>
+  </button>
+
+  <div class="wrap">
+    <div class="stage">
+      <!-- 左：大介紹 -->
+      <section class="panel">
+        <div class="inner">
+          <div class="brandRow">
+            <!-- 你之後可以把這塊換成自己的 logo 圖（img） -->
+            <div class="logo" aria-label="MovieBase Logo">
+              <span>MB</span>
+            </div>
+            <div class="brandTitle">
+              <b>MovieBase</b>
+              <small>漂浮影廳 × 觀影日記</small>
             </div>
           </div>
 
-          <h2 class="headline">把你的觀影進度、心情、票根，<br>變成一座漂浮影廳。</h2>
+          <div class="headline">
+            把你的觀影進度、心情、票根，<br/>
+            變成一座<span style="color:var(--accent2)">漂浮影廳</span>。
+          </div>
+
           <p class="sub">
-            你可以用 Google 登入建立「我的紀錄」，也可以先用訪客模式逛逛漂浮影廳（訪客只能看，不能按讚/留言/發文）。
+            這個網站把「私人紀錄」與「同好交流」放在同一個宇宙：<br/>
+            <b>我的紀錄</b>用來追劇/電影/電影院票根；<b>漂浮影廳</b>用 hashtag 找到同好、分享心得。
+            <br/><br/>
+            <span class="typing" id="typingText">（稍後會自動跳到介紹，然後一定會彈出登入/訪客視窗）</span>
           </p>
 
-          <div class="chips">
-            <div class="chip"><span class="dot p"></span>我的紀錄：已觀看 / 觀看中 / 未觀看</div>
-            <div class="chip"><span class="dot"></span>漂浮影廳：貼文牆 + #hashtag 搜尋</div>
-            <div class="chip"><span class="dot k"></span>我的帳戶：我的貼文 / 已按讚</div>
-          </div>
-
-          <div class="ctaRow">
-            <button class="btn btnPrimary" id="btnStart">開始探索（登入/訪客）</button>
-            <button class="btn btnGhost" id="btnSkip">Skip Intro</button>
-            <span class="hint">（等一下會彈出登入/訪客視窗）</span>
-          </div>
-
-          <div class="footer">
-            <span>UI：Neon Cinema + Floating Hall（深色玻璃擬態 + 霓虹強調）</span>
-            <span>需要協助？<a href="#" id="btnOpenAuth">直接開啟登入視窗</a></span>
+          <div class="chips" aria-label="features">
+            <div class="chip"><span class="dot"></span> 影集/動漫：季・集・時間碼</div>
+            <div class="chip"><span class="dot" style="background:var(--warn)"></span> 電影：觀看中秒數 & 已看完</div>
+            <div class="chip"><span class="dot" style="background:var(--ok)"></span> 電影院：日期/評分/票根/照片</div>
+            <div class="chip"><span class="dot" style="background:var(--danger)"></span> 貼文牆：hashtag 搜尋同好</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Right: floating theater preview -->
-      <div class="panel">
-        <div class="preview">
-          <div class="screen" aria-label="漂浮影廳預覽">
-            <div class="marquee">
-              <div class="marqueeTitle">
-                <span>漂</span><span>浮</span><span>影</span><span>廳</span>
-                <span style="margin-left:8px; font-weight:700; color:rgba(161,161,170,.9)">Preview</span>
-              </div>
-              <div class="marqueeText">
-                版面像電影院大螢幕，貼文在螢幕內滑動；用 # 搜尋同好心得。<br>
-                （登入後：可建立紀錄、發文；訪客：只能觀看）
+      <!-- 右：入口流程卡 -->
+      <section class="panel">
+        <div class="inner">
+          <div class="flowTop">
+            <div class="badge"><span class="pulse"></span> 入口流程</div>
+            <div class="badge" id="modeBadge">目前：未登入</div>
+          </div>
+
+          <div class="screen" id="screen">
+            <div class="type">Step 1</div>
+            <p class="bigline" id="screenText">
+              你正在進入 MovieBase 的世界。<br/>
+              先快速看完介紹，或直接按右下角 Skip。
+            </p>
+
+            <div class="btnRow">
+              <button class="btn ghost" id="btnOpenAuth" type="button">🔐 立即登入 / 訪客</button>
+              <button class="btn" id="btnGoAbout" type="button">✨ 看網站介紹</button>
+            </div>
+
+            <div class="hint" style="margin-top:10px;">
+              <div class="k">規則</div>
+              <div>
+                <b>訪客模式</b>：只能「看」漂浮影廳（不能紀錄、不能發文、不能按讚留言）。<br/>
+                <b>Google 登入</b>：才能使用我的紀錄、發文、互動。
               </div>
             </div>
-            <div class="posterRow" aria-hidden="true">
-              <div class="poster"></div>
-              <div class="poster"></div>
-              <div class="poster"></div>
+
+            <div class="status" id="status"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- 一定彈出的登入/訪客 Modal -->
+  <div class="modalMask" id="authMask" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="modal">
+      <div class="modalIn">
+        <div class="modalHead">
+          <div>
+            <div class="modalTitle" id="authTitle">登入 / 訪客模式</div>
+            <div class="modalDesc">
+              不管你有沒有看完介紹，這個視窗都會出現。<br/>
+              你可以先用訪客看看漂浮影廳，但「紀錄與發文」必須登入。
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Auth modal -->
-  <div class="overlay" id="overlay">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-      <div class="modalHead">
-        <b id="authTitle">選擇進入方式</b>
-        <div class="x" id="btnClose" aria-label="close">✕</div>
-      </div>
-      <div class="modalBody">
-        <div class="row">
-          <div class="status" id="statusPill"><span class="sDot"></span><span id="statusText">目前：未登入</span></div>
-          <button class="btn btnSmall" id="btnGuest">以訪客模式進入（只能觀看）</button>
+          <button class="x" id="btnCloseAuth" type="button" aria-label="Close">✕</button>
         </div>
 
-        <div class="err" id="errBox"></div>
+        <div class="sep"></div>
 
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-          <div style="color:rgba(161,161,170,.95); font-size:12px; line-height:1.6">
-            登入流程：Google 取得 <b>ID Token</b> → 丟給 Apps Script 驗證 → 成功後進入主站。<br>
-            若出現 <b>aud mismatch</b>：代表前端與後端用的 Client ID 不一致。
-          </div>
-          <div id="gBtn"></div>
+        <div class="btnRow">
+          <button class="btn ghost" id="btnGuest" type="button">
+            👀 以訪客進入 <small>（只能看漂浮影廳）</small>
+          </button>
         </div>
 
-        <div style="color:rgba(161,161,170,.9); font-size:12px; line-height:1.6">
-          小提醒：訪客禁止「我的紀錄」與「按讚/留言/發文」，這會在前後端都鎖住，符合規格。
-        </div>
+        <div style="height:10px"></div>
+
+        <!-- Google Button 會渲染在這 -->
+        <div id="gsiBtn"></div>
+
+        <div class="status" id="authStatus"></div>
       </div>
     </div>
   </div>
 
   <script>
-    // ====== 必改（改成你的）======
-    const CLIENT_ID = "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com";
-    const GAS_EXEC_URL = "https://script.google.com/macros/s/AKfycbyuipb05zxPbPp7iAotqe_Oya4je2s-l3COcJ8kDO7e4VHjdLRuNwJhrymkPN02b9Sd/exec"; // 形如 https://script.google.com/macros/s/XXXX/exec
-    // ============================
+    /* =========================================================
+      ✅ 你只要改這裡兩個值（貼你的）
+    ========================================================= */
+    const CONFIG = {
+      // TODO(1)：貼你的 Google OAuth Client ID（長得像 xxxx.apps.googleusercontent.com）
+      CLIENT_ID: "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com",
 
-    const overlay = document.getElementById("overlay");
-    const errBox = document.getElementById("errBox");
-    const statusPill = document.getElementById("statusPill");
-    const statusText = document.getElementById("statusText");
+      // TODO(2)：貼你的 Apps Script Web App /exec
+      GAS_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyuipb05zxPbPp7iAotqe_Oya4je2s-l3COcJ8kDO7e4VHjdLRuNwJhrymkPN02b9Sd/exec",
 
-    const openModal = () => overlay.classList.add("show");
-    const closeModal = () => overlay.classList.remove("show");
+      // 入口成功後要去的主頁（你說 app.html 是主殼）
+      NEXT_PAGE: "./app.html"
+    };
 
-    document.getElementById("btnStart").addEventListener("click", openModal);
-    document.getElementById("btnOpenAuth").addEventListener("click", (e)=>{ e.preventDefault(); openModal(); });
-    document.getElementById("btnClose").addEventListener("click", closeModal);
-    document.getElementById("btnSkip").addEventListener("click", openModal);
+    /* =========================================================
+      工具
+    ========================================================= */
+    const $ = (id)=>document.getElementById(id);
 
-    // click outside modal to close
-    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
-
-    function setErr(msg){
-      errBox.textContent = msg;
-      errBox.classList.add("show");
+    function setStatus(msg, type=""){
+      const el = $("status");
+      el.textContent = msg || "";
+      el.className = "status " + type;
     }
-    function clearErr(){
-      errBox.textContent = "";
-      errBox.classList.remove("show");
+    function setAuthStatus(msg, type=""){
+      const el = $("authStatus");
+      el.textContent = msg || "";
+      el.className = "status " + type;
     }
-    function setStatus(role, label){
-      statusPill.classList.toggle("ok", role === "user");
-      statusText.textContent = label;
+    function openAuth(){
+      $("authMask").style.display = "flex";
+      setAuthStatus("");
+      try { $("btnCloseAuth").focus(); } catch {}
+    }
+    function closeAuth(){
+      $("authMask").style.display = "none";
     }
 
-    async function apiPost(payload){
-      // 用 text/plain 避免觸發 CORS preflight（比 application/json 更穩）
-      const res = await fetch(GAS_EXEC_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+    function setModeBadge(mode, name){
+      if (mode === "guest"){
+        $("modeBadge").textContent = "目前：訪客模式";
+      } else if (mode === "user"){
+        $("modeBadge").textContent = "目前：Google 已登入" + (name ? `（${name}）` : "");
+      } else {
+        $("modeBadge").textContent = "目前：未登入";
+      }
+    }
+
+    async function apiPOST(payload){
+      const res = await fetch(CONFIG.GAS_WEBAPP_URL, {
+        method:"POST",
+        headers: { "Content-Type":"text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
       return await res.json();
     }
 
-    function goApp(){
-      window.location.href = "./app.html";
+    function goNext(){
+      location.href = CONFIG.NEXT_PAGE;
     }
 
-    // Guest mode
-    document.getElementById("btnGuest").addEventListener("click", ()=>{
-      clearErr();
-      localStorage.setItem("mb_role", "guest");
-      localStorage.removeItem("mb_idToken");
-      localStorage.removeItem("mb_user");
-      setStatus("guest", "目前：訪客模式");
-      goApp();
-    });
+    /* =========================================================
+      ✅ 規則：訪客不能紀錄/發文（先在入口把身分寫入 localStorage）
+      其他頁面（app.html）就用這個狀態做權限控制
+    ========================================================= */
+    function loginAsGuest(){
+      localStorage.setItem("moviebase_mode", "guest");
+      localStorage.removeItem("id_token");
+      localStorage.removeItem("moviebase_user");
+      setModeBadge("guest");
+      setAuthStatus("已切換為訪客模式：只能看漂浮影廳 ✅", "ok");
+      setTimeout(goNext, 450);
+    }
 
-    // Google sign-in
-    window.onload = () => {
-      if(!CLIENT_ID || CLIENT_ID.includes("PUT_YOUR")){
-        setErr("你還沒填 CLIENT_ID。請把 index.html 上方的 CLIENT_ID 換成 Cloud Console 的 OAuth Client ID。");
+    async function restoreLogin(){
+      const token = localStorage.getItem("id_token");
+      if (!token){
+        setModeBadge("none");
         return;
       }
-      if(!GAS_EXEC_URL || GAS_EXEC_URL.includes("PUT_YOUR")){
-        setErr("你還沒填 GAS_EXEC_URL（/exec）。請把 Apps Script 部署後的 /exec 網址貼上。");
+      try{
+        const data = await apiPOST({ action:"me", idToken: token });
+        if (!data.ok) throw new Error(data.error || "me failed");
+        localStorage.setItem("moviebase_mode","user");
+        localStorage.setItem("moviebase_user", JSON.stringify(data.user || {}));
+        setModeBadge("user", data.user?.name || data.user?.email || "");
+      }catch(e){
+        console.warn(e);
+        localStorage.removeItem("id_token");
+        localStorage.removeItem("moviebase_user");
+        localStorage.removeItem("moviebase_mode");
+        setModeBadge("none");
+      }
+    }
+
+    function initGoogle(){
+      if (!CONFIG.CLIENT_ID || CONFIG.CLIENT_ID.includes("PASTE_")){
+        setAuthStatus("⚠️ 你還沒貼 CLIENT_ID（請回到 index.html 的 TODO 貼上）", "err");
+        return;
+      }
+      if (!CONFIG.GAS_WEBAPP_URL || CONFIG.GAS_WEBAPP_URL.includes("PASTE_")){
+        setAuthStatus("⚠️ 你還沒貼 GAS /exec（請回到 index.html 的 TODO 貼上）", "err");
+        return;
+      }
+      if (!window.google || !google.accounts?.id){
+        setAuthStatus("Google SDK 尚未載入完成，請稍後再試一次。", "err");
         return;
       }
 
       google.accounts.id.initialize({
-        client_id: CLIENT_ID,
+        client_id: CONFIG.CLIENT_ID,
         callback: async (resp) => {
-          clearErr();
           try{
-            const idToken = resp.credential;
-            const out = await apiPost({ action: "me", idToken });
-            if(!out || !out.ok){
-              setErr((out && (out.error || out.msg)) ? (out.error || out.msg) : "登入驗證失敗：後端沒有回 ok。");
-              setStatus("guest", "目前：未登入");
-              return;
-            }
-            localStorage.setItem("mb_role", "user");
-            localStorage.setItem("mb_idToken", idToken);
-            localStorage.setItem("mb_user", JSON.stringify(out.user || {}));
-            setStatus("user", "目前：已登入（驗證成功）");
-            goApp();
-          }catch(err){
-            setErr("登入流程出錯： " + (err?.message || String(err)));
-            setStatus("guest", "目前：未登入");
+            localStorage.setItem("id_token", resp.credential);
+            const data = await apiPOST({ action:"me", idToken: resp.credential });
+            if (!data.ok) throw new Error(data.error || "me failed");
+
+            localStorage.setItem("moviebase_mode","user");
+            localStorage.setItem("moviebase_user", JSON.stringify(data.user || {}));
+            setModeBadge("user", data.user?.name || data.user?.email || "");
+            setAuthStatus("登入成功 ✅ 正在進入系統…", "ok");
+            setTimeout(goNext, 600);
+          }catch(e){
+            console.error(e);
+            setAuthStatus("登入驗證失敗（請確認後端 me/Client ID）", "err");
           }
         }
       });
 
-      google.accounts.id.renderButton(
-        document.getElementById("gBtn"),
-        {
-          theme: "outline",
-          size: "large",
-          text: "signin_with",
-          shape: "pill",
-          width: 260
-        }
-      );
+      google.accounts.id.renderButton($("gsiBtn"), { theme:"outline", size:"large", shape:"pill" });
+    }
 
-      // If already has session, show status
-      const role = localStorage.getItem("mb_role");
-      if(role === "user"){
-        setStatus("user", "目前：已登入（本機 session）");
-      }else if(role === "guest"){
-        setStatus("guest", "目前：訪客模式（本機 session）");
-      }else{
-        setStatus("guest", "目前：未登入");
-      }
-    };
+    /* =========================================================
+      入口動畫流程：一定會彈出登入/訪客視窗（符合你的要求）
+    ========================================================= */
+    function runIntro(){
+      // 你想要的：logo→介紹→一定彈窗
+      setStatus("準備中…");
+      // 自動切換文字（小動畫感）
+      const lines = [
+        "你正在進入 MovieBase 的世界。",
+        "這裡會有：我的紀錄（追劇/電影/電影院）＋ 漂浮影廳（貼文牆）。",
+        "不管你有沒有跳過介紹，都一定會彈出登入/訪客視窗。"
+      ];
+      let i=0;
+      const tick = () => {
+        $("screenText").innerHTML = lines[i].replace(/\n/g,"<br/>");
+        $("screen").querySelector(".type").textContent = "Step " + (i+1);
+        i++;
+        if (i < lines.length) setTimeout(tick, 1100);
+        else {
+          setStatus("已載入入口流程。", "ok");
+          // 稍等一下，一定彈窗
+          setTimeout(openAuth, 650);
+        }
+      };
+      setTimeout(tick, 400);
+    }
+
+    /* =========================================================
+      事件
+    ========================================================= */
+    window.addEventListener("load", async () => {
+      $("btnSkip").addEventListener("click", () => {
+        // Skip = 直接彈窗（但不會跳過「一定彈窗」規則）
+        setStatus("已跳過介紹。", "ok");
+        openAuth();
+      });
+
+      $("btnOpenAuth").addEventListener("click", openAuth);
+      $("btnCloseAuth").addEventListener("click", closeAuth);
+      $("authMask").addEventListener("click", (e) => {
+        if (e.target === $("authMask")) closeAuth();
+      });
+
+      $("btnGuest").addEventListener("click", loginAsGuest);
+
+      $("btnGoAbout").addEventListener("click", () => {
+        // 入口頁其實已經是介紹，如果你要更完整介紹，可以之後做 about.html
+        setStatus("你正在閱讀介紹：左側就是網站介紹。", "ok");
+      });
+
+      await restoreLogin();
+      initGoogle();
+      runIntro();
+    });
   </script>
 </body>
 </html>
