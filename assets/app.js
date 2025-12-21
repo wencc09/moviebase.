@@ -1,7 +1,9 @@
 /* MovieBase shared app.js
    - auth state (guest/user)
-   - login modal gates
-   - header buttons toggle (login/guest <-> account/logout)
+   - login modal (optional per page)
+   - permission gates (front-end)
+   - global navbar sync (hide "登入 / 訪客" when logged in)
+   - theme toggle (optional if #themeToggle exists)
 */
 
 const CONFIG = {
@@ -13,21 +15,21 @@ const MB = {
   state: {
     mode: "unknown", // "guest" | "user"
     user: null,      // {sub,email,name,picture}
-  }
+  },
 };
 
-const $ = (q, root=document) => root.querySelector(q);
+const $ = (q, root = document) => root.querySelector(q);
 
-function toast(msg){
+function toast(msg) {
   const el = $("#toast");
-  if(!el) { alert(msg); return; }
+  if (!el) return alert(msg);
   el.textContent = msg;
   el.style.display = "block";
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=> el.style.display="none", 2200);
+  toast._t = setTimeout(() => (el.style.display = "none"), 2200);
 }
 
-async function apiPOST(payload){
+async function apiPOST(payload) {
   const res = await fetch(CONFIG.GAS_WEBAPP_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -36,113 +38,122 @@ async function apiPOST(payload){
   return await res.json();
 }
 
-async function verifyMe(){
+async function verifyMe() {
   const idToken = localStorage.getItem("id_token");
-  if(!idToken) return null;
+  if (!idToken) return null;
   const data = await apiPOST({ action: "me", idToken });
-  if(!data.ok) throw new Error(data.error || "me failed");
+  if (!data.ok) throw new Error(data.error || "me failed");
   return data.user;
 }
 
 /* =========================
-   Auth state
+   Mode setters
 ========================= */
-function dispatchAuthChanged(){
-  // 給各頁（包含 index）統一監聽的事件
-  window.dispatchEvent(new CustomEvent("mb:auth", { detail: { ...MB.state } }));
-}
-
-function setModeGuest(){
+function setModeGuest() {
   MB.state.mode = "guest";
   MB.state.user = null;
   localStorage.removeItem("id_token");
-  localStorage.removeItem("mb_user_name");
   localStorage.setItem("mode", "guest");
   renderAuthUI();
-  dispatchAuthChanged();
 }
 
-function setModeUser(user){
+function setModeUser(user) {
   MB.state.mode = "user";
-  MB.state.user = user || null;
+  MB.state.user = user;
   localStorage.setItem("mode", "user");
-  if(user?.name) localStorage.setItem("mb_user_name", user.name);
   renderAuthUI();
-  dispatchAuthChanged();
 }
 
 /* =========================
-   UI render (all pages safe)
+   UI sync (shared)
 ========================= */
-function renderAuthUI(){
-  // (A) 你其他頁面如果有這些 id，就照顧它們
+function renderAuthUI() {
+  // (A) Page auth badge block (if exists)
   const badge = $("#authBadge");
-  const name  = $("#authName");
-  const pic   = $("#authPic");
+  const name = $("#authName");
+  const pic = $("#authPic");
   const btnLogout = $("#btnLogout");
 
-  if(badge){
-    if(MB.state.mode === "user" && MB.state.user){
-      badge.textContent = "目前：已登入";
-    }else{
-      badge.textContent = "目前：訪客";
-    }
-  }
-  if(name){
-    if(MB.state.mode === "user" && MB.state.user){
-      name.textContent = MB.state.user.name || MB.state.user.email || "";
-    }else{
-      name.textContent = "Guest";
-    }
-  }
-  if(pic){
-    if(MB.state.mode === "user" && MB.state.user?.picture){
-      pic.src = MB.state.user.picture;
-      pic.style.display = "inline-block";
-    }else{
-      pic.style.display = "none";
-    }
-  }
-  if(btnLogout){
-    btnLogout.style.display = (MB.state.mode === "user") ? "inline-block" : "none";
-  }
+  const isUser = MB.state.mode === "user" && MB.state.user;
 
-  // (B) index.html 入口頁右上角：#loginState/#btnLogin/#btnGuest/#btnLogoutTop
+  if (badge) badge.textContent = isUser ? "目前：已登入" : "目前：訪客";
+  if (name) name.textContent = isUser ? (MB.state.user.name || MB.state.user.email || "") : "Guest";
+  if (pic) {
+    pic.src = isUser ? (MB.state.user.picture || "") : "";
+    pic.style.display = isUser && MB.state.user.picture ? "inline-block" : "none";
+  }
+  if (btnLogout) btnLogout.style.display = isUser ? "inline-flex" : "none";
+
+  // (B) index header (if exists)
   syncEntryHeader();
+
+  // (C) global topbar buttons on every page
+  syncGlobalAuthButtons();
 }
 
-function syncEntryHeader(){
+/* Entrance page header sync (index.html) */
+function syncEntryHeader() {
+  const isUser = MB.state.mode === "user" && MB.state.user;
+
+  // 入口右上狀態
   const loginState = $("#loginState");
-  const btnLogin   = $("#btnLogin");
-  const btnGuest   = $("#btnGuest");
-  const btnLogoutTop = $("#btnLogoutTop");
-
-  const btnLogin2 = $("#btnLogin2"); // 入口右側卡片的那顆
-  const btnGuest2 = $("#btnGuest2");
-
-  const isUser = (MB.state.mode === "user" && MB.state.user);
-
-  if(loginState){
-    if(isUser){
-      const label = MB.state.user.name || MB.state.user.email || "已登入";
-      loginState.textContent = `目前：已登入（${label}）`;
-    }else{
+  if (loginState) {
+    if (isUser) {
+      const n = MB.state.user.name || MB.state.user.email || "已登入";
+      loginState.textContent = `目前：已登入（${n}）`;
+    } else {
       loginState.textContent = "目前：未登入";
     }
   }
 
-  // 未登入：顯示登入/訪客、隱藏登出
-  if(btnLogin) btnLogin.style.display = isUser ? "none" : "inline-flex";
-  if(btnGuest) btnGuest.style.display = isUser ? "none" : "inline-flex";
-  if(btnLogoutTop) btnLogoutTop.style.display = isUser ? "inline-flex" : "none";
+  // 入口按鈕：已登入時隱藏 登入/訪客，顯示 登出（若有）
+  const btnLogin = $("#btnLogin");
+  const btnGuest = $("#btnGuest");
+  const btnLogin2 = $("#btnLogin2");
+  const btnGuest2 = $("#btnGuest2");
+  const btnLogoutTop = $("#btnLogoutTop"); // 若你入口頁有放登出鍵，可用這個 id
 
-  // 入口卡片的兩顆（若存在）
-  if(btnLogin2) btnLogin2.style.display = isUser ? "none" : "inline-flex";
-  if(btnGuest2) btnGuest2.style.display = isUser ? "none" : "inline-flex";
+  [btnLogin, btnLogin2, btnGuest, btnGuest2].forEach((el) => {
+    if (el) el.style.display = isUser ? "none" : "";
+  });
+  if (btnLogoutTop) btnLogoutTop.style.display = isUser ? "inline-flex" : "none";
 }
 
-function requireLogin(featureName="此功能"){
-  if(MB.state.mode !== "user"){
+/* Global nav: hide the "登入 / 訪客" button when logged in */
+function syncGlobalAuthButtons() {
+  const isUser = MB.state.mode === "user" && MB.state.user;
+
+  // 1) 用文字抓「登入 / 訪客」(你的截圖那顆)
+  const loginGuestCandidates = [];
+  document.querySelectorAll("a,button").forEach((el) => {
+    const t = (el.textContent || "").trim().replace(/\s+/g, " ");
+    if (t === "登入 / 訪客" || t === "登入/訪客" || t === "登入 ／ 訪客") {
+      loginGuestCandidates.push(el);
+    }
+  });
+
+  loginGuestCandidates.forEach((el) => {
+    el.style.display = isUser ? "none" : "";
+  });
+
+  // 2) 顯示/隱藏登出鍵（你頁面若有這些 id 就會自動套用）
+  ["#btnLogout", "#btnLogoutTop"].forEach((sel) => {
+    const el = document.querySelector(sel);
+    if (el) el.style.display = isUser ? "inline-flex" : "none";
+  });
+
+  // 3) 若你有上方顯示名字的膠囊（可自行加 id="authNameTop"）
+  const nameTop = document.querySelector("#authNameTop");
+  if (nameTop) {
+    nameTop.textContent = isUser
+      ? (MB.state.user.name || MB.state.user.email || "已登入")
+      : "Guest";
+  }
+}
+
+/* Permission gate */
+function requireLogin(featureName = "此功能") {
+  if (MB.state.mode !== "user") {
     toast(`${featureName} 需要先登入 Google`);
     openLoginModal();
     return false;
@@ -153,9 +164,9 @@ function requireLogin(featureName="此功能"){
 /* =========================
    Navbar active
 ========================= */
-function setActiveNav(){
+function setActiveNav() {
   const path = location.pathname.split("/").pop() || "index.html";
-  document.querySelectorAll("[data-nav]").forEach(a=>{
+  document.querySelectorAll("[data-nav]").forEach((a) => {
     a.classList.toggle("is-active", a.getAttribute("href") === path);
   });
 }
@@ -163,117 +174,137 @@ function setActiveNav(){
 /* =========================
    Modal
 ========================= */
-function openLoginModal(){
-  // 若已登入就不要再開
-  if(MB.state.mode === "user") return;
-  $("#loginModal")?.classList.add("is-open");
-  $("#modal")?.classList.add("open"); // index.html 用的是 #modal
+function openLoginModal() {
+  const m = $("#loginModal");
+  if (m) m.classList.add("is-open");
 }
-function closeLoginModal(){
-  $("#loginModal")?.classList.remove("is-open");
-  $("#modal")?.classList.remove("open");
+function closeLoginModal() {
+  const m = $("#loginModal");
+  if (m) m.classList.remove("is-open");
 }
 
 /* =========================
-   Logout
+   Theme toggle (optional)
+   - requires a button with id="themeToggle"
+   - uses :root[data-theme="light"] in theme.css
 ========================= */
-function doLogout(){
-  if(window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-  setModeGuest();
-  toast("已登出");
+function applyTheme(theme) {
+  const t = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem("theme", t);
+}
+
+function initThemeToggle() {
+  const btn = $("#themeToggle");
+  if (!btn) return;
+
+  // restore
+  const saved = localStorage.getItem("theme");
+  if (saved === "light" || saved === "dark") applyTheme(saved);
+
+  btn.addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme") || "dark";
+    applyTheme(cur === "light" ? "dark" : "light");
+  });
 }
 
 /* =========================
-   Google Login
+   Google Login (GIS)
 ========================= */
-function initGoogle(){
-  if(!window.google || !google.accounts?.id){
+function initGoogle() {
+  if (!window.google || !google.accounts?.id) {
     console.warn("Google SDK not ready");
     return;
   }
 
   google.accounts.id.initialize({
     client_id: CONFIG.GOOGLE_CLIENT_ID,
-    callback: async (resp)=>{
-      try{
+    callback: async (resp) => {
+      try {
         localStorage.setItem("id_token", resp.credential);
         const user = await verifyMe();
         setModeUser(user);
         closeLoginModal();
         toast("登入成功");
-      }catch(e){
+      } catch (e) {
         console.error(e);
         toast("登入驗證失敗，請確認後端 me");
         localStorage.removeItem("id_token");
+        setModeGuest();
       }
-    }
+    },
   });
 
-  // 你的各頁可能用不同的 gsi 容器 id
   const gsi = $("#gsiBtn");
-  if(gsi){
+  if (gsi) {
     gsi.innerHTML = "";
-    google.accounts.id.renderButton(gsi, { theme:"outline", size:"large" });
+    google.accounts.id.renderButton(gsi, { theme: "outline", size: "large" });
   }
 }
 
 /* =========================
    Boot
 ========================= */
-async function boot(){
+async function boot() {
   setActiveNav();
+  initThemeToggle();
 
   // close modal by backdrop click
-  $("#loginModal")?.addEventListener("click", (e)=>{
-    if(e.target.id === "loginModal") closeLoginModal();
-  });
-  $("#modal")?.addEventListener("click", (e)=>{
-    if(e.target.id === "modal") closeLoginModal();
+  $("#loginModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "loginModal") closeLoginModal();
   });
 
-  // Open login (不同頁面可能用不同按鈕 id)
   $("#btnOpenLogin")?.addEventListener("click", openLoginModal);
+
+  // 入口頁也可能有 btnLogin（你 index.html 有）
   $("#btnLogin")?.addEventListener("click", openLoginModal);
-  $("#btnLogin2")?.addEventListener("click", openLoginModal);
 
-  // Guest buttons
-  $("#btnGuest")?.addEventListener("click", ()=>{
-    setModeGuest();
-    closeLoginModal();
-    toast("已用訪客模式進入（禁止紀錄與發文）");
-  });
-  $("#btnGuest2")?.addEventListener("click", ()=>{
+  // 全站訪客按鈕（若頁面上有）
+  $("#btnGuest")?.addEventListener("click", () => {
     setModeGuest();
     closeLoginModal();
     toast("已用訪客模式進入（禁止紀錄與發文）");
   });
 
-  // Logout buttons (多個頁面都可能用得到)
-  $("#btnLogout")?.addEventListener("click", doLogout);
-  $("#btnLogoutTop")?.addEventListener("click", doLogout);
+  // 登出按鈕（若頁面上有）
+  $("#btnLogout")?.addEventListener("click", () => {
+    try {
+      if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+    } catch (e) {}
+    setModeGuest();
+    toast("已登出");
+  });
+
+  // 若入口頁也有 btnLogoutTop
+  $("#btnLogoutTop")?.addEventListener("click", () => {
+    try {
+      if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+    } catch (e) {}
+    setModeGuest();
+    toast("已登出");
+  });
 
   // restore
   const savedMode = localStorage.getItem("mode");
-  if(savedMode === "guest"){
+  if (savedMode === "guest") {
     setModeGuest();
-  }else{
-    try{
+  } else {
+    // try id_token
+    try {
       const user = await verifyMe();
-      if(user) setModeUser(user);
+      if (user) setModeUser(user);
       else setModeGuest();
-    }catch(e){
+    } catch (e) {
       console.error(e);
       setModeGuest();
     }
   }
 
   initGoogle();
-  syncEntryHeader();
 }
 
 // expose for page scripts
 window.MB = MB;
 window.MB_requireLogin = requireLogin;
 window.MB_openLoginModal = openLoginModal;
-window.MB_logout = doLogout;
 window.addEventListener("load", boot);
