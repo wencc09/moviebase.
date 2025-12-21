@@ -1,9 +1,9 @@
 /* MovieBase shared app.js
+   - navbar
    - auth state (guest/user)
-   - login modal (optional per page)
-   - permission gates (front-end)
-   - global navbar sync (hide "登入 / 訪客" when logged in)
-   - theme toggle (optional if #themeToggle exists)
+   - login modal
+   - basic permission gates (front-end)
+   - theme toggle (dark/light) + persistence
 */
 
 const CONFIG = {
@@ -15,11 +15,14 @@ const MB = {
   state: {
     mode: "unknown", // "guest" | "user"
     user: null,      // {sub,email,name,picture}
-  },
+  }
 };
 
 const $ = (q, root = document) => root.querySelector(q);
 
+/* =========================
+   Toast (no emoji)
+========================= */
 function toast(msg) {
   const el = $("#toast");
   if (!el) return alert(msg);
@@ -29,6 +32,9 @@ function toast(msg) {
   toast._t = setTimeout(() => (el.style.display = "none"), 2200);
 }
 
+/* =========================
+   API
+========================= */
 async function apiPOST(payload) {
   const res = await fetch(CONFIG.GAS_WEBAPP_URL, {
     method: "POST",
@@ -47,7 +53,7 @@ async function verifyMe() {
 }
 
 /* =========================
-   Mode setters
+   Auth State
 ========================= */
 function setModeGuest() {
   MB.state.mode = "guest";
@@ -59,99 +65,67 @@ function setModeGuest() {
 
 function setModeUser(user) {
   MB.state.mode = "user";
-  MB.state.user = user;
+  MB.state.user = user || null;
   localStorage.setItem("mode", "user");
   renderAuthUI();
 }
 
-/* =========================
-   UI sync (shared)
-========================= */
 function renderAuthUI() {
-  // (A) Page auth badge block (if exists)
+  // common header widgets (may not exist on all pages)
   const badge = $("#authBadge");
   const name = $("#authName");
   const pic = $("#authPic");
+
   const btnLogout = $("#btnLogout");
+  const btnOpenLogin = $("#btnOpenLogin");
+  const btnGuest = $("#btnGuest");
+
+  // some pages (index) have different ids
+  const loginState = $("#loginState");
+  const btnLogin = $("#btnLogin");
+  const btnLogin2 = $("#btnLogin2");
+  const btnGuest2 = $("#btnGuest2");
 
   const isUser = MB.state.mode === "user" && MB.state.user;
 
+  // update common badge area
   if (badge) badge.textContent = isUser ? "目前：已登入" : "目前：訪客";
   if (name) name.textContent = isUser ? (MB.state.user.name || MB.state.user.email || "") : "Guest";
   if (pic) {
     pic.src = isUser ? (MB.state.user.picture || "") : "";
     pic.style.display = isUser && MB.state.user.picture ? "inline-block" : "none";
   }
-  if (btnLogout) btnLogout.style.display = isUser ? "inline-flex" : "none";
 
-  // (B) index header (if exists)
-  syncEntryHeader();
-
-  // (C) global topbar buttons on every page
-  syncGlobalAuthButtons();
-}
-
-/* Entrance page header sync (index.html) */
-function syncEntryHeader() {
-  const isUser = MB.state.mode === "user" && MB.state.user;
-
-  // 入口右上狀態
-  const loginState = $("#loginState");
+  // index header state
   if (loginState) {
     if (isUser) {
-      const n = MB.state.user.name || MB.state.user.email || "已登入";
-      loginState.textContent = `目前：已登入（${n}）`;
+      const nm = MB.state.user.name || MB.state.user.email || "";
+      loginState.textContent = nm ? `目前：已登入（${nm}）` : "目前：已登入";
     } else {
       loginState.textContent = "目前：未登入";
     }
   }
 
-  // 入口按鈕：已登入時隱藏 登入/訪客，顯示 登出（若有）
-  const btnLogin = $("#btnLogin");
-  const btnGuest = $("#btnGuest");
-  const btnLogin2 = $("#btnLogin2");
-  const btnGuest2 = $("#btnGuest2");
-  const btnLogoutTop = $("#btnLogoutTop"); // 若你入口頁有放登出鍵，可用這個 id
+  // show/hide login/guest vs logout + account
+  // (when logged in -> hide login + guest buttons)
+  const show = (el, on) => { if (el) el.style.display = on ? "" : "none"; };
 
-  [btnLogin, btnLogin2, btnGuest, btnGuest2].forEach((el) => {
-    if (el) el.style.display = isUser ? "none" : "";
-  });
-  if (btnLogoutTop) btnLogoutTop.style.display = isUser ? "inline-flex" : "none";
+  show(btnLogout, isUser);
+  show(btnOpenLogin, !isUser);
+  show(btnGuest, !isUser);
+
+  show(btnLogin, !isUser);
+  show(btnLogin2, !isUser);
+  show(btnGuest2, !isUser);
+
+  // if some pages have a "登入/訪客" quick switch button
+  const btnLoginGuest = $("#btnLoginGuest");
+  show(btnLoginGuest, !isUser);
 }
 
-/* Global nav: hide the "登入 / 訪客" button when logged in */
-function syncGlobalAuthButtons() {
-  const isUser = MB.state.mode === "user" && MB.state.user;
-
-  // 1) 用文字抓「登入 / 訪客」(你的截圖那顆)
-  const loginGuestCandidates = [];
-  document.querySelectorAll("a,button").forEach((el) => {
-    const t = (el.textContent || "").trim().replace(/\s+/g, " ");
-    if (t === "登入 / 訪客" || t === "登入/訪客" || t === "登入 ／ 訪客") {
-      loginGuestCandidates.push(el);
-    }
-  });
-
-  loginGuestCandidates.forEach((el) => {
-    el.style.display = isUser ? "none" : "";
-  });
-
-  // 2) 顯示/隱藏登出鍵（你頁面若有這些 id 就會自動套用）
-  ["#btnLogout", "#btnLogoutTop"].forEach((sel) => {
-    const el = document.querySelector(sel);
-    if (el) el.style.display = isUser ? "inline-flex" : "none";
-  });
-
-  // 3) 若你有上方顯示名字的膠囊（可自行加 id="authNameTop"）
-  const nameTop = document.querySelector("#authNameTop");
-  if (nameTop) {
-    nameTop.textContent = isUser
-      ? (MB.state.user.name || MB.state.user.email || "已登入")
-      : "Guest";
-  }
-}
-
-/* Permission gate */
+/* =========================
+   Permission Gate
+========================= */
 function requireLogin(featureName = "此功能") {
   if (MB.state.mode !== "user") {
     toast(`${featureName} 需要先登入 Google`);
@@ -166,7 +140,7 @@ function requireLogin(featureName = "此功能") {
 ========================= */
 function setActiveNav() {
   const path = location.pathname.split("/").pop() || "index.html";
-  document.querySelectorAll("[data-nav]").forEach((a) => {
+  document.querySelectorAll("[data-nav]").forEach(a => {
     a.classList.toggle("is-active", a.getAttribute("href") === path);
   });
 }
@@ -174,19 +148,11 @@ function setActiveNav() {
 /* =========================
    Modal
 ========================= */
-function openLoginModal() {
-  const m = $("#loginModal");
-  if (m) m.classList.add("is-open");
-}
-function closeLoginModal() {
-  const m = $("#loginModal");
-  if (m) m.classList.remove("is-open");
-}
+function openLoginModal() { $("#loginModal")?.classList.add("is-open"); }
+function closeLoginModal() { $("#loginModal")?.classList.remove("is-open"); }
 
 /* =========================
-   Theme toggle (optional)
-   - requires a button with id="themeToggle"
-   - uses :root[data-theme="light"] in theme.css
+   Theme Toggle (fix: prevent link bubbling)
 ========================= */
 function applyTheme(theme) {
   const t = theme === "light" ? "light" : "dark";
@@ -202,14 +168,19 @@ function initThemeToggle() {
   const saved = localStorage.getItem("theme");
   if (saved === "light" || saved === "dark") applyTheme(saved);
 
-  btn.addEventListener("click", () => {
+  // IMPORTANT: many pages put this button inside <a> or other clickable header
+  // so we must prevent bubbling/navigation.
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     const cur = document.documentElement.getAttribute("data-theme") || "dark";
     applyTheme(cur === "light" ? "dark" : "light");
-  });
+  }, true);
 }
 
 /* =========================
-   Google Login (GIS)
+   Google Login
 ========================= */
 function initGoogle() {
   if (!window.google || !google.accounts?.id) {
@@ -232,7 +203,7 @@ function initGoogle() {
         localStorage.removeItem("id_token");
         setModeGuest();
       }
-    },
+    }
   });
 
   const gsi = $("#gsiBtn");
@@ -251,40 +222,36 @@ async function boot() {
 
   // close modal by backdrop click
   $("#loginModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "loginModal") closeLoginModal();
+    if (e.target && e.target.id === "loginModal") closeLoginModal();
   });
 
+  // buttons (may not exist on all pages)
   $("#btnOpenLogin")?.addEventListener("click", openLoginModal);
 
-  // 入口頁也可能有 btnLogin（你 index.html 有）
+  // index buttons
   $("#btnLogin")?.addEventListener("click", openLoginModal);
+  $("#btnLogin2")?.addEventListener("click", openLoginModal);
 
-  // 全站訪客按鈕（若頁面上有）
   $("#btnGuest")?.addEventListener("click", () => {
     setModeGuest();
     closeLoginModal();
     toast("已用訪客模式進入（禁止紀錄與發文）");
   });
+  $("#btnGuest2")?.addEventListener("click", () => {
+    setModeGuest();
+    closeLoginModal();
+    toast("已用訪客模式進入（禁止紀錄與發文）");
+  });
 
-  // 登出按鈕（若頁面上有）
   $("#btnLogout")?.addEventListener("click", () => {
     try {
       if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-    } catch (e) {}
+    } catch (_) {}
     setModeGuest();
     toast("已登出");
   });
 
-  // 若入口頁也有 btnLogoutTop
-  $("#btnLogoutTop")?.addEventListener("click", () => {
-    try {
-      if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-    } catch (e) {}
-    setModeGuest();
-    toast("已登出");
-  });
-
-  // restore
+  // restore mode / user
   const savedMode = localStorage.getItem("mode");
   if (savedMode === "guest") {
     setModeGuest();
@@ -305,6 +272,14 @@ async function boot() {
 
 // expose for page scripts
 window.MB = MB;
+window.MB.me = async (idToken) => {
+  const tok = idToken || localStorage.getItem("id_token");
+  if (!tok) return null;
+  const data = await apiPOST({ action: "me", idToken: tok });
+  if (!data.ok) throw new Error(data.error || "me failed");
+  return data.user;
+};
 window.MB_requireLogin = requireLogin;
 window.MB_openLoginModal = openLoginModal;
+
 window.addEventListener("load", boot);
