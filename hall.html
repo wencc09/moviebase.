@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MovieBase｜漂浮影廳</title>
+  <link rel="stylesheet" href="./assets/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="bg-float"></div>
+
+  <div class="topbar">
+    <div class="nav">
+      <div class="brand">
+        <div class="logoDot"></div>
+        <div class="brandTitle">
+          <b>MovieBase</b>
+          <span>漂浮影廳（貼文牆）</span>
+        </div>
+      </div>
+
+      <div class="navLinks">
+        <a class="pill" data-nav href="about.html">網站介紹</a>
+        <a class="pill" data-nav href="records.html">我的紀錄</a>
+        <a class="pill" data-nav href="hall.html">漂浮影廳</a>
+        <a class="pill" data-nav href="account.html">我的帳戶</a>
+      </div>
+
+      <div class="rightBox">
+        <span class="badge" id="authBadge">目前：讀取中…</span>
+        <img class="avatar" id="authPic" alt="">
+        <span class="badge" id="authName">...</span>
+        <button class="btn" id="btnOpenLogin" type="button">登入 / 訪客</button>
+        <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2>大螢幕貼文牆（下一步會做成真正的「電影螢幕」）</h2>
+        <div class="muted">
+          這頁會像 Threads/IG：滑動看貼文。<br>
+          你要求：不分類，但有 <b>#hashtag</b> + 搜尋欄位。<br><br>
+          ✅ 訪客：可以看貼文<br>
+          🔒 訪客：不能按讚/留言/發文（我們會鎖）
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <button class="btn primary" id="btnNewPost" type="button">＋ 新增貼文</button>
+          <button class="btn" id="btnLike" type="button">♡ 按讚（測試）</button>
+        </div>
+
+        <div class="muted" style="margin-top:10px;">
+          第 3 步才會把：hashtag 搜尋、從我的紀錄複製成貼文、編輯刪除、通知鐘 全部做完。
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>訪客限制（先做正確）</h2>
+        <div class="muted" id="hallGuard">狀態讀取中…</div>
+        <div class="hr"></div>
+        <div class="muted">
+          你要求：訪客「不能按讚、留言」且你補充「訪客不能發文」。<br>
+          ✅ 我們已先在前端鎖住，下一步會在後端也鎖住（避免繞過）。
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal" id="loginModal">
+    <div class="modalBox fadeIn">
+      <h3>需要登入才能互動</h3>
+      <div class="small">按讚 / 留言 / 發文 需要 Google 登入。</div>
+      <div class="hr"></div>
+      <div id="gsiBtn"></div>
+      <div class="hr"></div>
+      <button class="btn" id="btnGuest" type="button">我先當訪客看就好</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./assets/app.js"></script>
+  <script>
+    window.addEventListener("load", ()=>{
+      const el = document.getElementById("hallGuard");
+      if(MB.state.mode === "user") el.textContent = "✅ 已登入：可以互動（第 3 步才接上按讚留言）";
+      else el.textContent = "👀 訪客模式：可看貼文，但互動會被鎖";
+
+      document.getElementById("btnNewPost").addEventListener("click", ()=>{
+        if(!MB_requireLogin("新增貼文")) return;
+        toast("下一步才會做：新增貼文（從我的紀錄 / 新的分享）");
+      });
+
+      document.getElementById("btnLike").addEventListener("click", ()=>{
+        if(!MB_requireLogin("按讚")) return;
+        toast("下一步才會做：按讚寫入試算表");
+      });
+    });
+  </script>
+</body>
+</html>
