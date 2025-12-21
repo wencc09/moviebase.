@@ -1,118 +1,104 @@
-/* =========================
-   MovieBase Theme System
-   Dark (Cyber Neon) / Light (Cute Soft)
-========================= */
+/* assets/theme.css */
 
+/* =========================
+   Theme tokens
+========================= */
 :root{
-  /* Base background */
   --bg0:#0b1020;
   --bg1:#0e1425;
   --bg2:#1e2940;
 
-  /* Glass cards */
   --card: rgba(255,255,255,.06);
-  --card2: rgba(255,255,255,.09);
-  --stroke: rgba(255,255,255,.10);
+  --card2: rgba(255,255,255,.10);
+  --stroke: rgba(255,255,255,.12);
 
-  /* Text */
   --text:#eaf0ff;
-  --muted: rgba(234,240,255,.72);
+  --muted: rgba(234,240,255,.76);
 
-  /* Accents */
   --accent:#84e3e8;   /* cyan */
   --accent2:#e25f9e;  /* magenta */
   --accent3:#f58e5f;  /* orange */
   --accent4:#267cb1;  /* blue */
 
-  /* Glow */
-  --glow: 0 0 24px rgba(132,227,232,.28),
-          0 0 56px rgba(226,95,158,.18);
-
-  /* Neon background spots (dark) */
-  --spot1: rgba(132,227,232,.18);
-  --spot2: rgba(226,95,158,.18);
-  --spot3: rgba(245,142,95,.16);
+  --glow: 0 0 18px rgba(132,227,232,.24), 0 0 40px rgba(226,95,158,.16);
+  --shadow: 0 18px 48px rgba(0,0,0,.30);
 }
 
 :root[data-theme="light"]{
-  /* Base background */
   --bg0:#fff8ec;
   --bg1:#fffdf8;
   --bg2:#ffe8f0;
 
-  /* Glass cards */
   --card: rgba(255,255,255,.75);
-  --card2: rgba(255,255,255,.88);
-  --stroke: rgba(10,20,40,.10);
+  --card2: rgba(255,255,255,.90);
+  --stroke: rgba(10,20,40,.12);
 
-  /* Text */
   --text:#0c1326;
   --muted: rgba(12,19,38,.72);
 
-  /* Accents (cute palette) */
   --accent:#862983;   /* purple */
   --accent2:#ff8da3;  /* pink */
   --accent3:#ffc66e;  /* yellow */
   --accent4:#267cb1;  /* blue */
 
-  /* Glow */
-  --glow: 0 10px 40px rgba(134,41,131,.18);
-
-  /* Soft background spots (light) */
-  --spot1: rgba(38,124,177,.14);
-  --spot2: rgba(255,141,163,.16);
-  --spot3: rgba(255,198,110,.18);
+  --glow: 0 12px 36px rgba(134,41,131,.16), 0 10px 24px rgba(255,141,163,.10);
+  --shadow: 0 18px 44px rgba(10,20,40,.18);
 }
 
 /* =========================
-   Global background
+   Base
 ========================= */
 html,body{ height:100%; }
 
 body{
   margin:0;
   color:var(--text);
+  font-family: system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+
+  /* 背景：更亮、更有層次，不會髒黑 */
   background:
-    radial-gradient(1200px 600px at 12% 22%, var(--spot1), transparent 60%),
-    radial-gradient(900px 520px at 78% 18%, var(--spot2), transparent 62%),
-    radial-gradient(820px 560px at 72% 78%, var(--spot3), transparent 58%),
+    radial-gradient(1000px 560px at 10% 18%, rgba(132,227,232,.22), transparent 60%),
+    radial-gradient(920px 520px at 86% 16%, rgba(226,95,158,.22), transparent 62%),
+    radial-gradient(860px 580px at 70% 82%, rgba(245,142,95,.18), transparent 58%),
+    radial-gradient(700px 480px at 32% 76%, rgba(38,124,177,.14), transparent 60%),
     linear-gradient(135deg, var(--bg1), var(--bg0) 55%, var(--bg2));
   background-attachment: fixed;
-  transition: background .4s ease, color .2s ease;
 }
 
+/* 讓文字更乾淨 */
+a{ color: inherit; }
+*{ box-sizing: border-box; }
+
 /* =========================
-   Glass cards
+   Glass baseline
 ========================= */
 .glass{
   background: linear-gradient(180deg, var(--card2), var(--card));
   border: 1px solid var(--stroke);
   border-radius: 18px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 16px 44px rgba(0,0,0,.28);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  box-shadow: var(--shadow);
 }
 
-/* =========================
-   Neon outline helper
-========================= */
+/* 霓虹描邊輔助（需要時加 class="glass neon"） */
 .neon{
   position: relative;
 }
 .neon::before{
   content:"";
   position:absolute;
-  inset:-1px;
+  inset:-2px;
   border-radius: inherit;
   pointer-events:none;
   background: linear-gradient(
     120deg,
-    rgba(132,227,232,.65),
-    rgba(226,95,158,.55),
-    rgba(245,142,95,.50)
+    rgba(132,227,232,.70),
+    rgba(226,95,158,.60),
+    rgba(245,142,95,.52)
   );
-  filter: blur(10px);
-  opacity:.45;
+  filter: blur(12px);
+  opacity:.40;
   z-index:-1;
 }
 
@@ -122,49 +108,82 @@ body{
 .btn{
   appearance:none;
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,.06);
+  background: rgba(255,255,255,.07);
   color: var(--text);
   padding: 10px 14px;
   border-radius: 999px;
   cursor:pointer;
-  transition:
-    transform .12s ease,
-    box-shadow .12s ease,
-    background .12s ease;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
 }
 
 .btn:hover{
   transform: translateY(-1px);
   box-shadow: var(--glow);
-  background: rgba(255,255,255,.10);
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.18);
 }
 
-/* primary button (support both styles) */
+/* 同時支援 .btn.primary 以及你 HTML 用的 .btn-primary */
 .btn.primary,
-.btn.btn-primary{
-  border-color: transparent;
-  background: linear-gradient(
-    90deg,
-    rgba(132,227,232,.85),
-    rgba(226,95,158,.75)
-  );
-  color: #091022;
-  font-weight: 700;
+.btn.btn-primary,
+.btn-primary{
+  border-color: transparent !important;
+  background: linear-gradient(90deg, rgba(132,227,232,.88), rgba(226,95,158,.78), rgba(245,142,95,.64));
+  color: #081024;
+  font-weight: 800;
 }
 
 /* =========================
-   Small helpers
+   Small helpers (optional)
 ========================= */
 .pill{
-  display:inline-block;
-  padding:6px 10px;
-  font-size:12px;
-  border-radius:999px;
-  border:1px solid var(--stroke);
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--stroke);
   background: rgba(255,255,255,.06);
-  color:var(--muted);
+  color: var(--muted);
 }
 
-.h1{ font-size: clamp(26px, 3vw, 34px); font-weight:700; }
-.h2{ font-size: clamp(18px, 2.2vw, 22px); font-weight:700; }
-.p{ font-size:15px; line-height:1.7; color:var(--muted); }
+/* =========================
+   Modal override (fix: "顏色沒改")
+   覆蓋舊的黑色遮罩/黑玻璃
+========================= */
+#loginModal,
+.modal{
+  background: rgba(6, 10, 18, .45) !important; /* 不要黑到整頁髒掉 */
+  backdrop-filter: blur(6px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(1.15) !important;
+}
+
+:root[data-theme="light"] #loginModal,
+:root[data-theme="light"] .modal{
+  background: rgba(255, 248, 236, .58) !important; /* light theme 更亮 */
+}
+
+/* modal 卡片本體 */
+#loginModal .modalCard,
+#loginModal .glass,
+.modal .modalCard,
+.modal .glass{
+  background: linear-gradient(180deg, var(--card2), var(--card)) !important;
+  border: 1px solid var(--stroke) !important;
+  box-shadow: var(--shadow), var(--glow) !important;
+}
+
+/* Google sign-in container */
+#gsiBtn,
+.gsiWrap{
+  background: rgba(255,255,255,.07) !important;
+  border: 1px solid var(--stroke) !important;
+  border-radius: 16px !important;
+}
+
+/* 讓 modal 裡的文字更清楚 */
+#loginModal b, #loginModal .hint,
+.modal b, .modal .hint{
+  color: var(--text);
+}
