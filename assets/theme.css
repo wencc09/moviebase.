@@ -735,4 +735,34 @@ a{ color: inherit; }
   display:none;
 }
 
+/* ===== Fix: 背景往下滑不斷裂 ===== */
+html, body { height: 100%; }
+body { min-height: 100dvh; background: transparent !important; }
+
+/* 用 fixed 讓背景永遠鋪滿視窗，不受內容高度影響 */
+html::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  /* 這裡用你主題變數（若你已經有 --bg 之類就會吃到）
+     若沒有，也至少會是漂亮的電影院漸層底 */
+  background:
+    radial-gradient(1200px 800px at 12% 18%, rgba(255, 120, 180, .18), transparent 55%),
+    radial-gradient(1100px 900px at 82% 22%, rgba(80, 210, 255, .18), transparent 55%),
+    radial-gradient(900px 700px at 50% 115%, rgba(180, 120, 255, .14), transparent 55%),
+    linear-gradient(180deg, rgba(10, 14, 22, 1), rgba(12, 16, 26, 1));
+  background-attachment: fixed;
+}
+
+/* 你的粒子層也要固定鋪滿 */
+.bg-float{
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: -2 !important;
+  pointer-events: none;
+}
+
 
