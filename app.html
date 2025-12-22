@@ -5,74 +5,47 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜主站</title>
 
-  <!-- ✅ CSS 順序：theme → style（統一） -->
   <link rel="stylesheet" href="./assets/theme.css">
   <link rel="stylesheet" href="./assets/style.css">
 
-  <!-- Google Sign-In (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
-    /* app-only: tabs + bottom nav (不重寫 .btn/.pill 皮膚) */
-    .tabsWrap{
-      margin-top: 16px;
-      display: grid;
-      gap: 14px;
-    }
+    .tabsWrap{ margin-top: 16px; display:grid; gap:14px; }
     .tabPanel{ display:none; }
     .tabPanel.is-on{ display:block; }
 
-    /* active pill highlight（theme.css 沒提供 is-active） */
     .pill.is-active{
       border-color: rgba(132,227,232,.35);
       box-shadow: 0 0 0 4px rgba(132,227,232,.10);
     }
 
-    /* Mobile bottom nav */
     .bottomNav{
-      position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
-      z-index: 60;
-      display: none;
-      padding: 10px;
-      gap: 10px;
-      justify-content: space-between;
-      border-radius: 18px;
-      border: 1px solid var(--stroke);
+      position:fixed; left:12px; right:12px; bottom:12px; z-index:60;
+      border:1px solid var(--stroke);
       background: rgba(10,14,26,.55);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
+      border-radius:18px;
+      display:none;
+      padding:10px;
+      gap:10px;
+      justify-content:space-between;
     }
-    .bottomNav .pill{
-      flex: 1;
-      justify-content: center;
-      cursor: pointer;
-      white-space: nowrap;
-    }
+    .bottomNav .pill{ flex:1; justify-content:center; white-space:nowrap; }
     @media (max-width: 860px){
       .bottomNav{ display:flex; }
       .wrap{ padding-bottom: 120px; }
-      /* 小螢幕時把 topbar 中間那排 navLinks 隱藏，避免擠爆 */
       .navLinks{ display:none; }
     }
 
-    /* 小工具列（分頁內） */
-    .toolRow{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
-    .toolRow > *{ flex: 0 0 auto; }
+    .toolRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
   </style>
 </head>
 
 <body>
   <div class="bg-float"></div>
 
-  <!-- ✅ 統一 topbar（跟 records/hall/account/about 同結構） -->
   <div class="topbar">
     <div class="nav">
       <div class="brand">
@@ -80,15 +53,14 @@
         <button class="btn" id="themeToggle" type="button">Theme</button>
         <div class="brandTitle">
           <b>MovieBase</b>
-          <span>主站（分頁中樞）</span>
+          <span>主站（四分頁）</span>
         </div>
       </div>
 
-      <!-- ✅ 這裡改成「切分頁」而不是跳頁（減少跳來跳去） -->
       <div class="navLinks" id="appTabs">
-        <button class="pill is-active" type="button" data-tab="about">網站介紹</button>
-        <button class="pill" type="button" data-tab="records">我的紀錄</button>
+        <button class="pill is-active" type="button" data-tab="lobby">影院大廳</button>
         <button class="pill" type="button" data-tab="hall">漂浮影廳</button>
+        <button class="pill" type="button" data-tab="records">觀影紀錄</button>
         <button class="pill" type="button" data-tab="account">我的帳戶</button>
       </div>
 
@@ -97,8 +69,7 @@
         <img class="avatar" id="authPic" alt="">
         <span class="badge" id="authName">...</span>
 
-        <!-- app.js 會依狀態自動顯示/隱藏 -->
-        <button class="btn" id="btnOpenLogin" type="button">登入 / 訪客</button>
+        <button class="btn" id="btnOpenLogin" type="button">立即登入</button>
         <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
       </div>
     </div>
@@ -107,98 +78,57 @@
   <div class="wrap">
     <div class="tabsWrap">
 
-      <!-- ABOUT -->
-      <section class="card tabPanel is-on" id="tab-about">
-        <h2>🎬 這裡是 MovieBase 的主站大廳</h2>
+      <section class="card tabPanel is-on" id="tab-lobby">
+        <h2>🎬 影院大廳（主分頁）</h2>
         <div class="muted">
-          你可以用上方分頁進入：我的紀錄 / 漂浮影廳 / 我的帳戶。<br>
-          ✅ 登入：可紀錄、發文、互動<br>
-          👀 訪客：只能瀏覽，不能寫入資料
+          這裡是你的「房間入口」：你之後可以放置快速導覽、站內公告、最新貼文精選。
         </div>
-
         <div class="hr"></div>
-        <div class="muted">
-          建議展示順序：<br>
-          1) 先看漂浮影廳（任何人都能看）<br>
-          2) 再登入 → 進入我的紀錄（展示日記式多筆備忘錄）<br>
-          3) 最後到帳戶頁看「我的貼文 / 已按讚」
-        </div>
-
         <div class="toolRow">
-          <button class="btn" type="button" data-tabjump="hall">先逛漂浮影廳</button>
-          <button class="btn primary" type="button" id="btnLoginFromAbout">立即登入</button>
+          <button class="btn" type="button" data-tabjump="hall">去漂浮影廳</button>
+          <button class="btn" type="button" data-tabjump="records">去觀影紀錄</button>
         </div>
       </section>
 
-      <!-- RECORDS (Login required) -->
-      <section class="card tabPanel" id="tab-records">
-        <h2>📌 我的紀錄（登入限定）</h2>
-        <div class="muted" id="recordsGuardText">檢查中…</div>
-        <div class="hr"></div>
-
-        <div class="muted">
-          下一步你會在這裡做三區：<br>
-          ✅ 已觀看（最大區域 + 大卡）<br>
-          ✅ 觀看中（較小區域 + 大卡）<br>
-          ✅ 未觀看（小卡，只顯示片名）<br><br>
-          點進作品 → 作品日記（多筆備忘錄、不同集數/秒數的心路歷程）。
-        </div>
-
-        <div class="toolRow">
-          <button class="btn primary" id="btnAddRecord" type="button">＋ 新增紀錄</button>
-        </div>
-      </section>
-
-      <!-- HALL -->
       <section class="card tabPanel" id="tab-hall">
         <h2>🍿 漂浮影廳（貼文牆）</h2>
         <div class="muted" id="hallGuardText">狀態讀取中…</div>
         <div class="hr"></div>
-
-        <div class="muted">
-          這裡會做成「大螢幕貼文牆」＋ hashtag 搜尋。<br>
-          👀 訪客：可以看<br>
-          🔒 訪客：不能按讚 / 留言 / 發文（會鎖）
-        </div>
-
         <div class="toolRow">
           <button class="btn primary" id="btnNewPost" type="button">＋ 新增貼文</button>
           <button class="btn" id="btnLikeTest" type="button">♡ 按讚（測試）</button>
         </div>
       </section>
 
-      <!-- ACCOUNT -->
+      <section class="card tabPanel" id="tab-records">
+        <h2>📌 觀影紀錄（登入限定）</h2>
+        <div class="muted" id="recordsGuardText">檢查中…</div>
+        <div class="hr"></div>
+        <div class="toolRow">
+          <button class="btn primary" id="btnAddRecord" type="button">＋ 新增紀錄</button>
+        </div>
+      </section>
+
       <section class="card tabPanel" id="tab-account">
         <h2>👤 我的帳戶</h2>
         <div class="muted" id="accInfo">讀取中…</div>
-        <div class="hr"></div>
-
-        <div class="muted">
-          你要求此頁要列出：<br>
-          ・訪客/Google 登入狀態<br>
-          ・用戶暱稱（可改，預設 Google 名字）<br>
-          ・我的貼文（可編輯/刪除）<br>
-          ・已按讚貼文（收藏）<br><br>
-          （第 4 步完成）
-        </div>
       </section>
 
     </div>
   </div>
 
-  <!-- Mobile bottom nav -->
   <nav class="bottomNav" id="bottomNav">
-    <button class="pill is-active" type="button" data-tab="about">介紹</button>
-    <button class="pill" type="button" data-tab="records">紀錄</button>
+    <button class="pill is-active" type="button" data-tab="lobby">大廳</button>
     <button class="pill" type="button" data-tab="hall">影廳</button>
+    <button class="pill" type="button" data-tab="records">紀錄</button>
     <button class="pill" type="button" data-tab="account">帳戶</button>
   </nav>
 
-  <!-- ✅ 統一 login modal（給 app.js 用） -->
+  <!-- 這裡先用簡版 modal（之後你要統一成「兩扇門」我也能再幫你換） -->
   <div class="modal" id="loginModal">
     <div class="modalBox fadeIn">
-      <h3>登入 / 訪客模式</h3>
-      <div class="small">登入後才能紀錄與互動；訪客只能瀏覽。</div>
+      <h3>登入以啟用完整功能</h3>
+      <div class="small">Google 用戶才可紀錄與互動；訪客只能瀏覽。</div>
       <div class="hr"></div>
       <div id="gsiBtn"></div>
       <div class="hr"></div>
@@ -208,7 +138,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- ✅ 共用邏輯：theme + auth + modal + gate -->
   <script src="./assets/app.js" defer></script>
 
   <script>
@@ -231,7 +160,7 @@
     }
 
     function showTab(tab){
-      const tabs = ["about","records","hall","account"];
+      const tabs = ["lobby","hall","records","account"];
       tabs.forEach(t=>{
         const panel = document.getElementById("tab-"+t);
         if(!panel) return;
@@ -242,10 +171,9 @@
     }
 
     async function safeGoTab(tab){
-      // records 必須登入：沒登入就擋住並彈 modal，並回到 about
       if(tab === "records"){
-        if(!MB_requireLogin("我的紀錄")) {
-          showTab("about");
+        if(!MB_requireLogin("觀影紀錄")) {
+          showTab("lobby");
           return;
         }
       }
@@ -255,34 +183,43 @@
     window.addEventListener("load", async ()=>{
       await waitForMBReady();
 
-      // 初始 tab
-      const hash = (location.hash || "#about").slice(1);
-      const wanted = ["about","records","hall","account"].includes(hash) ? hash : "about";
+      const hash = (location.hash || "#lobby").slice(1);
+      const wanted = ["lobby","hall","records","account"].includes(hash) ? hash : "lobby";
       await safeGoTab(wanted);
 
-      // 上方 tabs
       document.getElementById("appTabs")?.addEventListener("click",(e)=>{
         const b = e.target.closest("[data-tab]");
         if(!b) return;
         safeGoTab(b.dataset.tab);
       });
 
-      // 底部 tabs
       document.getElementById("bottomNav")?.addEventListener("click",(e)=>{
         const b = e.target.closest("[data-tab]");
         if(!b) return;
         safeGoTab(b.dataset.tab);
       });
 
-      // about 快速按鈕
-      document.getElementById("btnLoginFromAbout")?.addEventListener("click", ()=>{
-        MB_openLoginModal({ reset:true });
-      });
       document.querySelectorAll("[data-tabjump]").forEach(btn=>{
         btn.addEventListener("click", ()=> safeGoTab(btn.dataset.tabjump));
       });
 
-      // records 內文狀態
+      // hall
+      const hallGuard = document.getElementById("hallGuardText");
+      hallGuard.textContent =
+        (MB.state.mode === "user")
+          ? "✅ 已登入：可互動（下一步接上按讚留言）"
+          : "👀 訪客模式：可看貼文，但互動會被鎖";
+
+      document.getElementById("btnNewPost")?.addEventListener("click", ()=>{
+        if(!MB_requireLogin("新增貼文")) return;
+        toast("下一步才會做：新增貼文");
+      });
+      document.getElementById("btnLikeTest")?.addEventListener("click", ()=>{
+        if(!MB_requireLogin("按讚")) return;
+        toast("下一步才會做：按讚寫入試算表");
+      });
+
+      // records
       const recordsGuard = document.getElementById("recordsGuardText");
       recordsGuard.textContent =
         (MB.state.mode === "user")
@@ -291,26 +228,10 @@
 
       document.getElementById("btnAddRecord")?.addEventListener("click", ()=>{
         if(!MB_requireLogin("新增紀錄")) return;
-        toast("下一步才會做：三種類型新增表單（影集/電影/電影院）");
+        toast("下一步才會做：新增紀錄表單");
       });
 
-      // hall 內文狀態
-      const hallGuard = document.getElementById("hallGuardText");
-      hallGuard.textContent =
-        (MB.state.mode === "user")
-          ? "✅ 已登入：可互動（第 3 步接上按讚留言）"
-          : "👀 訪客模式：可看貼文，但互動會被鎖";
-
-      document.getElementById("btnNewPost")?.addEventListener("click", ()=>{
-        if(!MB_requireLogin("新增貼文")) return;
-        toast("下一步才會做：新增貼文（從我的紀錄 / 新的分享）");
-      });
-      document.getElementById("btnLikeTest")?.addEventListener("click", ()=>{
-        if(!MB_requireLogin("按讚")) return;
-        toast("下一步才會做：按讚寫入試算表");
-      });
-
-      // account 內文狀態
+      // account
       const acc = document.getElementById("accInfo");
       const isUser = (MB.state.mode === "user" && MB.state.user);
       if(isUser){
