@@ -205,14 +205,15 @@ body{ margin:0; overflow-x:hidden; }
 .modal.open{ display:grid; }
 
 .modalBox{
-  width: min(520px, 100%);
+  width: min(680px, calc(100% - 28px));
   border-radius: 22px;
-  border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(10,12,18,.92), rgba(10,12,18,.74));
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--glass2), var(--glass));
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 22px;
+  color: var(--text);
 }
 .modalBox h3{
   margin:0 0 8px;
