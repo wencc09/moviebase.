@@ -338,3 +338,198 @@ window.MB_requireLogin = requireLogin;
 window.MB_openLoginModal = (opts) => openLoginModal(opts || { reset: true });
 
 window.addEventListener("load", boot);
+
+/* =========================
+   Feed Wall (Local Demo)
+   之後接 Apps Script 也可以：只要把 API 改成你的 endpoint
+   ========================= */
+(function () {
+  const LS_KEY = "moviebase_feed_posts_v1";
+
+  function $(id) { return document.getElementById(id); }
+  function nowISO() { return new Date().toISOString(); }
+
+  function loadPosts() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function savePosts(posts) {
+    localStorage.setItem(LS_KEY, JSON.stringify(posts));
+  }
+
+  function formatTime(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString();
+    } catch {
+      return "";
+    }
+  }
+
+  function initials(name) {
+    const s = (name || "MB").trim();
+    return (s.length <= 2) ? s : s.slice(0, 2);
+  }
+
+  function normalizeTags(tagsStr) {
+    return (tagsStr || "")
+      .split(/\s+/)
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map(t => t.startsWith("#") ? t : `#${t}`)
+      .slice(0, 8);
+  }
+
+  function render() {
+    const list = $("feedList");
+    const empty = $("feedEmpty");
+    if (!list || !empty) return;
+
+    const posts = loadPosts();
+    list.innerHTML = "";
+
+    if (!posts.length) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    for (const p of posts) {
+      const card = document.createElement("article");
+      card.className = "feedCard";
+      card.innerHTML = `
+        <div class="feedTop">
+          <div class="feedMeta">
+            <div class="avatar">${initials(p.author)}</div>
+            <div class="metaText">
+              <div class="name">${escapeHtml(p.author)}</div>
+              <div class="time">${escapeHtml(formatTime(p.createdAt))}</div>
+            </div>
+          </div>
+          <div class="badges">
+            <span class="badge">${p.typeLabel}</span>
+            <span class="badge">心情 ${"★".repeat(p.mood)}</span>
+          </div>
+        </div>
+
+        ${p.title ? `<div class="feedTitle">${escapeHtml(p.title)}</div>` : ""}
+        <div class="feedContent">${escapeHtml(p.content)}</div>
+
+        ${p.tags?.length ? `
+          <div class="feedTags">
+            ${p.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
+          </div>
+        ` : ""}
+
+        <div class="feedActions">
+          <button class="pill" type="button" disabled>♡ 按讚（下一步）</button>
+          <button class="pill" type="button" disabled>💬 留言（下一步）</button>
+        </div>
+      `;
+      list.appendChild(card);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function mountFeed() {
+    const refreshBtn = $("btnFeedRefresh");
+    const openBtn = $("btnOpenComposer");
+    const details = $("composerDetails");
+    const closeBtn = $("btnCloseComposer");
+    const form = $("postForm");
+
+    if (refreshBtn) refreshBtn.addEventListener("click", render);
+
+    if (openBtn && details) {
+      openBtn.addEventListener("click", () => {
+        details.open = true;
+        details.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+
+    if (closeBtn && details) {
+      closeBtn.addEventListener("click", () => { details.open = false; });
+    }
+
+    if (form) {
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const fd = new FormData(form);
+        const title = (fd.get("title") || "").toString().trim();
+        const type = (fd.get("type") || "movie").toString();
+        const content = (fd.get("content") || "").toString().trim();
+        const tags = normalizeTags((fd.get("tags") || "").toString());
+        const mood = Number(fd.get("mood") || 3);
+
+        if (!content) {
+          alert("內容不能空白喔！");
+          return;
+        }
+
+        // 這裡之後可接你登入狀態：author 用你 Google 使用者名稱
+        const author = (document.documentElement.dataset.userName || "MovieBase");
+
+        const typeLabelMap = { movie: "電影", series: "影集", anime: "動畫", other: "其他" };
+        const post = {
+          id: crypto?.randomUUID?.() || `${Date.now()}_${Math.random()}`,
+          author,
+          title,
+          type,
+          typeLabel: typeLabelMap[type] || "其他",
+          content,
+          tags,
+          mood: Math.min(5, Math.max(1, mood)),
+          createdAt: nowISO(),
+        };
+
+        const posts = loadPosts();
+        posts.unshift(post);
+        savePosts(posts);
+
+        form.reset();
+        if (details) details.open = false;
+        render();
+      });
+    }
+
+    render();
+  }
+
+  // 讓 hash 切到 #feed/#wall 時也會顯示（若你有用 hash tab）
+  function onHashChange() {
+    const h = (location.hash || "").replace("#", "");
+    if (h === "feed" || h === "wall" || h === "post" || h === "floating") {
+      // 只要有該 panel，就 mount（不會重複綁事件）
+      if (!$("__feed_mounted__")) {
+        const marker = document.createElement("div");
+        marker.id = "__feed_mounted__";
+        marker.style.display = "none";
+        document.body.appendChild(marker);
+        mountFeed();
+      }
+    }
+  }
+
+  window.addEventListener("hashchange", onHashChange);
+  window.addEventListener("DOMContentLoaded", () => {
+    // 預設先 mount（安全：抓不到元素就不做事）
+    mountFeed();
+    onHashChange();
+  });
+})();
+
