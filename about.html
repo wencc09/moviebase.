@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜網站介紹</title>
-  <link rel="stylesheet" href="./assets/style.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="./assets/theme.css">
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="./assets/app.js" defer></script>
 
 </head>
 <body>
@@ -98,10 +98,10 @@
   <script src="./assets/app.js"></script>
   <script>
     // 介紹頁：如果是入口跳轉來的，或第一次進來，都彈一次 modal
-    window.addEventListener("load", ()=>{
+    //window.addEventListener("load", ()=>{
       const qs = new URLSearchParams(location.search);
       if(qs.get("fromIntro") === "1") setTimeout(()=> MB_openLoginModal(), 450);
-      else setTimeout(()=> MB_openLoginModal(), 650);
+      else setTimeout(()=> MB_openLoginModal(), 650);//
     });
   </script>
 </body>
