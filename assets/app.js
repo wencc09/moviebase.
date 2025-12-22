@@ -1,10 +1,7 @@
-
-/* MovieBase shared app.js
-   - auth state (guest/user/unknown)
-   - login modal (supports #loginModal and #modal)
-   - permission gates (front-end)
-   - theme toggle (dark/light) + persistence
-   - supports "entry page no-auto-mode" + "redirect after auth"
+/* MovieBase shared app.js (fixed)
+   - Robust Google GIS init (retry until SDK ready)
+   - Better backend error visibility
+   - Feed Wall now uses Apps Script (sheet) so cross-device sync works
 */
 
 const CONFIG = {
@@ -30,19 +27,37 @@ function toast(msg) {
   el.textContent = msg;
   el.style.display = "block";
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => (el.style.display = "none"), 2200);
+  toast._t = setTimeout(() => (el.style.display = "none"), 2400);
 }
 
 /* =========================
-   API
+   API (robust JSON handling)
 ========================= */
+async function apiFetch_(url, opts) {
+  const res = await fetch(url, opts);
+  const text = await res.text();
+
+  // Apps Script 權限/錯誤時常回 HTML，這裡直接把前 200 字顯示出來，方便你抓真因
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    const head = text.slice(0, 200).replace(/\s+/g, " ");
+    throw new Error(`Backend not JSON (HTTP ${res.status}): ${head}`);
+  }
+}
+
 async function apiPOST(payload) {
-  const res = await fetch(CONFIG.GAS_WEBAPP_URL, {
+  return apiFetch_(CONFIG.GAS_WEBAPP_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload),
   });
-  return await res.json();
+}
+
+async function apiGET(params) {
+  const u = new URL(CONFIG.GAS_WEBAPP_URL);
+  Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
+  return apiFetch_(u.toString(), { method: "GET" });
 }
 
 async function verifyMe() {
@@ -54,7 +69,7 @@ async function verifyMe() {
 }
 
 /* =========================
-   Helpers: redirect after auth
+   After-auth redirect
 ========================= */
 function getAfterAuthUrl() {
   return window.MB_AFTER_AUTH_URL || localStorage.getItem("mb_after_auth_url") || "";
@@ -70,7 +85,7 @@ function goAfterAuthIfNeeded() {
 }
 
 /* =========================
-   Auth State
+   Auth State + UI
 ========================= */
 function setModeGuest() {
   MB.state.mode = "guest";
@@ -93,7 +108,7 @@ function renderAuthUI() {
   const isUser = MB.state.mode === "user" && MB.state.user;
   const isGuest = MB.state.mode === "guest";
 
-  // ✅ 給 CSS 用（你 theme.css 最底下有用 data-role 控制 composer）
+  // 給 CSS / 貼文作者用
   document.documentElement.setAttribute("data-role", MB.state.mode);
   if (isUser) {
     document.documentElement.setAttribute("data-user-name", MB.state.user.name || MB.state.user.email || "MovieBase");
@@ -101,7 +116,6 @@ function renderAuthUI() {
     document.documentElement.removeAttribute("data-user-name");
   }
 
-  // common header widgets
   const badge = $("#authBadge");
   const name = $("#authName");
   const pic = $("#authPic");
@@ -118,44 +132,34 @@ function renderAuthUI() {
   const btnLogout = $("#btnLogout");
   const btnLogoutTop = $("#btnLogoutTop");
   const btnOpenLogin = $("#btnOpenLogin");
-  const btnGuest = $("#btnGuest");
 
   const btnLogin = $("#btnLogin");
   const btnLogin2 = $("#btnLogin2");
+  const btnGuest = $("#btnGuest");
   const btnGuest2 = $("#btnGuest2");
 
-  // 規則：
-  // - 已登入：只顯示登出（隱藏登入/訪客）
-  // - 訪客：保留「登入」按鈕（可升級 Google），但不顯示「訪客按鈕」
-  // - unknown：可顯示登入/訪客（用在某些頁面第一次進來）
   if (isUser) {
     show(btnLogout, true);
     show(btnLogoutTop, true);
-
     show(btnOpenLogin, false);
     show(btnLogin, false);
     show(btnLogin2, false);
-
     show(btnGuest, false);
     show(btnGuest2, false);
   } else if (isGuest) {
     show(btnLogout, false);
     show(btnLogoutTop, false);
-
     show(btnOpenLogin, true);
     show(btnLogin, true);
     show(btnLogin2, true);
-
     show(btnGuest, false);
     show(btnGuest2, false);
   } else {
     show(btnLogout, false);
     show(btnLogoutTop, false);
-
     show(btnOpenLogin, true);
     show(btnLogin, true);
     show(btnLogin2, true);
-
     show(btnGuest, true);
     show(btnGuest2, true);
   }
@@ -174,7 +178,7 @@ function requireLogin(featureName = "此功能") {
 }
 
 /* =========================
-   Modal (support index + pages)
+   Modal
 ========================= */
 function getModalEl() {
   return $("#loginModal") || $("#modal");
@@ -188,9 +192,7 @@ function resetEntryChooserIfAny() {
 function openLoginModal(opts = {}) {
   const m = getModalEl();
   if (!m) return;
-
   if (opts.reset) resetEntryChooserIfAny();
-
   m.classList.add("is-open");
   m.classList.add("open");
   m.setAttribute("aria-hidden", "false");
@@ -230,11 +232,13 @@ function initThemeToggle() {
 }
 
 /* =========================
-   Google Login
+   Google Login (robust init)
 ========================= */
-function initGoogle() {
+function initGoogle(retry = 0) {
+  // GIS script 用 async 載入，常常 boot 時還沒 ready，這裡重試
   if (!window.google || !google.accounts?.id) {
-    console.warn("Google SDK not ready");
+    if (retry < 80) return setTimeout(() => initGoogle(retry + 1), 100);
+    console.warn("Google SDK not ready (timeout)");
     return;
   }
 
@@ -243,14 +247,18 @@ function initGoogle() {
     callback: async (resp) => {
       try {
         localStorage.setItem("id_token", resp.credential);
+
         const user = await verifyMe();
         setModeUser(user);
+
         closeLoginModal();
         toast("登入成功");
         goAfterAuthIfNeeded();
       } catch (e) {
         console.error(e);
-        toast("登入驗證失敗，請確認後端 me");
+
+        // ✅ 直接顯示後端真正錯誤（例如 aud mismatch / 權限 / 非 JSON）
+        toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
         localStorage.removeItem("id_token");
         setModeGuest();
       }
@@ -325,64 +333,32 @@ async function boot() {
   initGoogle();
 }
 
-// expose
+/* expose */
 window.MB = MB;
-window.MB.me = async (idToken) => {
-  const tok = idToken || localStorage.getItem("id_token");
-  if (!tok) return null;
-  const data = await apiPOST({ action: "me", idToken: tok });
-  if (!data.ok) throw new Error(data.error || "me failed");
-  return data.user;
-};
 window.MB_requireLogin = requireLogin;
 window.MB_openLoginModal = (opts) => openLoginModal(opts || { reset: true });
 
 window.addEventListener("load", boot);
 
 /* =========================
-   Feed Wall (Local Demo + Search + Login Gate)
+   Feed Wall (Sheet-backed)
+   - works for app.html hall tab (ids: postList/postForm/...)
 ========================= */
 (function () {
-  const LS_KEY = "moviebase_feed_posts_v1";
+  const hasEl = (id) => !!document.getElementById(id);
+
+  // app.html hall tab 會有這些
+  if (!hasEl("postList") || !hasEl("postForm")) return;
 
   function $(id) { return document.getElementById(id); }
-  function nowISO() { return new Date().toISOString(); }
 
-  function loadPosts() {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function savePosts(posts) {
-    localStorage.setItem(LS_KEY, JSON.stringify(posts));
-  }
-
-  function formatTime(iso) {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleString();
-    } catch {
-      return "";
-    }
-  }
-
-  function initials(name) {
-    const s = (name || "MB").trim();
-    return (s.length <= 2) ? s : s.slice(0, 2);
-  }
-
-  function normalizeTags(tagsStr) {
-    return (tagsStr || "")
-      .split(/\s+/)
-      .map(t => t.trim())
+  function splitTags(s) {
+    return (s || "")
+      .split(/[\s,]+/)
+      .map(x => x.trim())
       .filter(Boolean)
-      .map(t => t.startsWith("#") ? t : `#${t}`)
-      .slice(0, 8);
+      .map(t => (t.startsWith("#") ? t : `#${t}`))
+      .slice(0, 12);
   }
 
   function escapeHtml(s) {
@@ -394,172 +370,191 @@ window.addEventListener("load", boot);
       .replaceAll("'", "&#39;");
   }
 
-  function matchQuery(post, q) {
-    const qq = (q || "").trim();
-    if (!qq) return true;
-
-    const hay = [
-      post.author, post.title, post.content,
-      ...(post.tags || [])
-    ].join(" ").toLowerCase();
-
-    // 若是 #tag，強化用 tags 比對
-    if (qq.startsWith("#")) {
-      const t = qq.toLowerCase();
-      return (post.tags || []).some(x => String(x).toLowerCase() === t) || hay.includes(t);
-    }
-
-    return hay.includes(qq.toLowerCase());
+  function moodStars(n) {
+    const m = Math.min(5, Math.max(1, Number(n || 3)));
+    return "★".repeat(m);
   }
 
-  function render(q = "") {
-    const list = $("feedList");
-    const empty = $("feedEmpty");
-    if (!list || !empty) return;
+  function kindLabel(k) {
+    if (k === "series") return "影集";
+    if (k === "anime") return "動畫";
+    if (k === "other") return "其他";
+    return "電影";
+  }
 
-    const posts = loadPosts().filter(p => matchQuery(p, q));
-    list.innerHTML = "";
+  function toCard(row) {
+    const tags = splitTags(row.hashtags || "");
+    const content = row.review || row.note || "";
+    return {
+      id: row.id,
+      author: row.authorName || "User",
+      title: row.title || "",
+      kind: row.category || "movie",
+      mood: row.rating || 3,
+      content,
+      tags,
+      ts: row.ts || "",
+    };
+  }
 
-    if (!posts.length) {
-      empty.style.display = "block";
-      empty.textContent = q ? "找不到符合的貼文（換個 #tag 或關鍵字試試）" : "目前還沒有貼文。先登入後發第一篇吧 🍿";
+  function match(card, q) {
+    const s = (q || "").trim().toLowerCase();
+    if (!s) return true;
+    const hay = [
+      card.author, card.title, card.content,
+      ...(card.tags || []),
+      kindLabel(card.kind)
+    ].join(" ").toLowerCase();
+
+    if (s.startsWith("#")) {
+      return (card.tags || []).some(t => t.toLowerCase() === s) || hay.includes(s);
+    }
+    return hay.includes(s);
+  }
+
+  function render(list, q) {
+    const wrap = $("postList");
+    if (!wrap) return;
+
+    const filtered = list.filter(c => match(c, q));
+
+    if (!filtered.length) {
+      wrap.innerHTML = `<div class="muted">目前沒有貼文（或找不到符合搜尋）</div>`;
       return;
     }
-    empty.style.display = "none";
 
-    for (const p of posts) {
-      const card = document.createElement("article");
-      card.className = "feedCard";
-      card.innerHTML = `
+    wrap.innerHTML = filtered.map(c => `
+      <article class="feedCard">
         <div class="feedTop">
           <div class="feedMeta">
-            <div class="avatar">${escapeHtml(initials(p.author))}</div>
+            <div class="avatar">${escapeHtml((c.author || "MB").slice(0, 2))}</div>
             <div class="metaText">
-              <div class="name">${escapeHtml(p.author)}</div>
-              <div class="time">${escapeHtml(formatTime(p.createdAt))}</div>
+              <div class="name">${escapeHtml(c.author)}</div>
+              <div class="time">${escapeHtml(c.ts || "")}</div>
             </div>
           </div>
           <div class="badges">
-            <span class="badge">${escapeHtml(p.typeLabel)}</span>
-            <span class="badge">心情 ${"★".repeat(p.mood)}</span>
+            <span class="badge">${escapeHtml(kindLabel(c.kind))}</span>
+            <span class="badge">心情 ${escapeHtml(moodStars(c.mood))}</span>
           </div>
         </div>
 
-        ${p.title ? `<div class="feedTitle">${escapeHtml(p.title)}</div>` : ""}
-        <div class="feedContent">${escapeHtml(p.content)}</div>
+        ${c.title ? `<div class="feedTitle">${escapeHtml(c.title)}</div>` : ""}
+        <div class="feedContent">${escapeHtml(c.content)}</div>
 
-        ${p.tags?.length ? `
+        ${c.tags?.length ? `
           <div class="feedTags">
-            ${p.tags.map(t => `<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`).join("")}
+            ${c.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
           </div>
         ` : ""}
-
-        <div class="feedActions">
-          <button class="pill" type="button" disabled>♡ 按讚（下一步）</button>
-          <button class="pill" type="button" disabled>💬 留言（下一步）</button>
-        </div>
-      `;
-      list.appendChild(card);
-    }
-
-    // 點 tag 直接搜尋
-    list.querySelectorAll("[data-tag]").forEach(el => {
-      el.addEventListener("click", () => {
-        const t = el.getAttribute("data-tag");
-        const inp = $("feedSearchInput");
-        if (inp) inp.value = t;
-        render(t);
-      });
-    });
+      </article>
+    `).join("");
   }
 
-  function mountFeed() {
-    const refreshBtn = $("btnFeedRefresh");
-    const openBtn = $("btnOpenComposer");
-    const details = $("composerDetails");
-    const closeBtn = $("btnCloseComposer");
+  function applyRoleLock() {
+    const isGuest = MB.state.mode !== "user";
+    const hint = $("composerHint");
+    if (hint) hint.textContent = isGuest ? "（登入後可發文 / 按讚 / 留言）" : "（已登入，可發文）";
+
+    // 訪客：禁止輸入
     const form = $("postForm");
-    const searchBtn = $("feedSearchBtn");
-    const searchInput = $("feedSearchInput");
-
-    if (refreshBtn) refreshBtn.addEventListener("click", () => render(searchInput?.value || ""));
-
-    if (searchBtn) searchBtn.addEventListener("click", () => render(searchInput?.value || ""));
-    if (searchInput) {
-      searchInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          render(searchInput.value || "");
-        }
-      });
-    }
-
-    if (openBtn && details) {
-      openBtn.addEventListener("click", () => {
-        if (window.MB_requireLogin && !window.MB_requireLogin("新增貼文")) return;
-        details.open = true;
-        details.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
-    }
-
-    if (closeBtn && details) {
-      closeBtn.addEventListener("click", () => { details.open = false; });
-    }
-
     if (form) {
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-
-        if (window.MB_requireLogin && !window.MB_requireLogin("發布貼文")) return;
-
-        const fd = new FormData(form);
-        const title = (fd.get("title") || "").toString().trim();
-        const type = (fd.get("type") || "movie").toString();
-        const content = (fd.get("content") || "").toString().trim();
-        const tags = normalizeTags((fd.get("tags") || "").toString());
-        const mood = Number(fd.get("mood") || 3);
-
-        if (!content) {
-          alert("內容不能空白喔！");
-          return;
-        }
-
-        const author =
-          (document.documentElement.getAttribute("data-user-name"))
-          || (MB?.state?.user?.name)
-          || "MovieBase";
-
-        const typeLabelMap = { movie: "電影", series: "影集", anime: "動畫", other: "其他" };
-        const post = {
-          id: crypto?.randomUUID?.() || `${Date.now()}_${Math.random()}`,
-          author,
-          title,
-          type,
-          typeLabel: typeLabelMap[type] || "其他",
-          content,
-          tags,
-          mood: Math.min(5, Math.max(1, mood)),
-          createdAt: nowISO(),
-        };
-
-        const posts = loadPosts();
-        posts.unshift(post);
-        savePosts(posts);
-
-        form.reset();
-        if (details) details.open = false;
-
-        render(searchInput?.value || "");
+      form.querySelectorAll("input, textarea, select, button").forEach(el => {
+        // 仍允許操作 UI，但 submit 會被擋
+        if (el.id === "btnPostSubmit") return;
+        el.disabled = isGuest;
       });
     }
-
-    // 登入/登出後，自動刷新（讓作者名、權限提示同步）
-    window.addEventListener("mb:auth", () => render(searchInput?.value || ""));
-
-    render("");
+    const submit = $("btnPostSubmit");
+    if (submit) submit.disabled = isGuest;
   }
 
-  window.addEventListener("DOMContentLoaded", () => {
-    mountFeed(); // 安全：若頁面沒有 feed 元素，不會做事
+  async function loadCards() {
+    const data = await apiGET({ action: "list_posts" });
+    if (!data.ok) throw new Error(data.error || "list_posts failed");
+
+    const cards = (data.rows || []).map(toCard);
+
+    // ts 已是 ISO 字串的話，後端有排序；這裡再保險
+    cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+    return cards;
+  }
+
+  async function createCardFromForm() {
+    const title = ($("postTitle")?.value || "").trim();
+    const kind = ($("postKind")?.value || "movie").trim();
+    const content = ($("postContent")?.value || "").trim();
+    const tags = ($("postTags")?.value || "").trim();
+    const mood = Number($("postMood")?.value || 3);
+
+    if (!content) {
+      toast("內容不能空白喔！");
+      return null;
+    }
+
+    const idToken = localStorage.getItem("id_token");
+    const payload = {
+      action: "create_post",
+      idToken,
+      title,
+      category: kind,
+      rating: Math.min(5, Math.max(1, mood)),
+      review: content,
+      hashtags: tags,
+    };
+
+    const data = await apiPOST(payload);
+    if (!data.ok) throw new Error(data.error || "create_post failed");
+    return data.id;
+  }
+
+  async function refresh() {
+    const q = $("postSearch")?.value || "";
+    const cards = await loadCards();
+    render(cards, q);
+  }
+
+  // Mount
+  window.addEventListener("load", async () => {
+    try {
+      applyRoleLock();
+      await refresh();
+    } catch (e) {
+      console.error(e);
+      toast(`貼文讀取失敗：${String(e.message || e)}`.slice(0, 120));
+    }
+
+    $("btnRefreshPosts")?.addEventListener("click", async () => {
+      try { await refresh(); } catch (e) { toast(String(e.message || e)); }
+    });
+
+    $("postSearch")?.addEventListener("input", async () => {
+      try { await refresh(); } catch (_) {}
+    });
+
+    $("postForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!requireLogin("發布貼文")) return;
+
+      try {
+        await createCardFromForm();
+
+        // reset
+        if ($("postTitle")) $("postTitle").value = "";
+        if ($("postContent")) $("postContent").value = "";
+        if ($("postTags")) $("postTags").value = "";
+
+        toast("✅ 已發布（已寫入試算表）");
+        await refresh();
+      } catch (err) {
+        console.error(err);
+        toast(`發布失敗：${String(err.message || err)}`.slice(0, 140));
+      }
+    });
+
+    window.addEventListener("mb:auth", async () => {
+      applyRoleLock();
+      try { await refresh(); } catch (_) {}
+    });
   });
 })();
