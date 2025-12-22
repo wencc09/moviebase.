@@ -457,3 +457,282 @@ a{ color: inherit; }
   }
 }
 
+/* =========================
+   Feed Wall (Cinema Screen)
+   ========================= */
+
+/* 這些變數若你已有主題變數也沒關係：會用你的為主 */
+:root {
+  --mb-fg: rgba(240, 243, 255, 0.92);
+  --mb-muted: rgba(240, 243, 255, 0.68);
+  --mb-glass: rgba(20, 24, 34, 0.50);
+  --mb-glass2: rgba(20, 24, 34, 0.28);
+  --mb-stroke: rgba(255, 255, 255, 0.14);
+  --mb-glow: rgba(132, 227, 232, 0.22);
+}
+
+:root.theme-light,
+:root[data-theme="light"] {
+  --mb-fg: rgba(18, 20, 26, 0.92);
+  --mb-muted: rgba(18, 20, 26, 0.62);
+  --mb-glass: rgba(255, 255, 255, 0.58);
+  --mb-glass2: rgba(255, 255, 255, 0.40);
+  --mb-stroke: rgba(0, 0, 0, 0.10);
+  --mb-glow: rgba(0, 140, 255, 0.14);
+}
+
+.cinemaScreen{
+  position: relative;
+  border-radius: 28px;
+  padding: 18px;
+  background: radial-gradient(1200px 520px at 20% 0%, rgba(255,255,255,.12), transparent 45%),
+              linear-gradient(135deg, rgba(0,0,0,.22), rgba(255,255,255,.06));
+  border: 1px solid var(--mb-stroke);
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+  overflow: hidden;
+  max-width: 1180px;
+}
+
+.cinemaBezel{
+  position:absolute; inset:0;
+  border-radius: 28px;
+  background:
+    radial-gradient(900px 420px at 50% 12%, rgba(0,0,0,.10), transparent 55%),
+    radial-gradient(1000px 520px at 50% 110%, rgba(0,0,0,.35), transparent 55%);
+  pointer-events:none;
+}
+
+.cinemaGrain{
+  position:absolute; inset:0;
+  opacity:.18;
+  pointer-events:none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px);
+  animation: mbGrain 2.8s steps(2,end) infinite;
+  mix-blend-mode: overlay;
+}
+
+@keyframes mbGrain{
+  0%{ transform: translate3d(0,0,0) }
+  20%{ transform: translate3d(-1%, 1%,0) }
+  40%{ transform: translate3d(1%, -1%,0) }
+  60%{ transform: translate3d(-1%, -1%,0) }
+  80%{ transform: translate3d(1%, 1%,0) }
+  100%{ transform: translate3d(0,0,0) }
+}
+
+.cinemaHeader{
+  position: relative;
+  z-index: 1;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  padding: 10px 12px 12px;
+  color: var(--mb-fg);
+}
+
+.cinemaTitle{ display:flex; gap:12px; align-items:flex-start; }
+.cinemaIcon{
+  width: 40px; height: 40px;
+  display:grid; place-items:center;
+  border-radius: 14px;
+  background: var(--mb-glass2);
+  border: 1px solid var(--mb-stroke);
+  box-shadow: 0 0 0 6px rgba(132,227,232,.06);
+}
+
+.hTitle{ font-size: 18px; font-weight: 800; letter-spacing:.2px; }
+.hSub{ font-size: 13px; color: var(--mb-muted); margin-top: 2px; line-height: 1.4; }
+
+.cinemaActions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+.cinemaBody{
+  position: relative;
+  z-index: 1;
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--mb-glass);
+  border: 1px solid var(--mb-stroke);
+  backdrop-filter: blur(14px);
+}
+
+.feedEmpty{
+  color: var(--mb-muted);
+  font-size: 14px;
+  padding: 18px 6px;
+}
+
+.feedList{
+  display: grid;
+  gap: 12px;
+}
+
+.feedCard{
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border: 1px solid var(--mb-stroke);
+}
+
+.feedTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 10px;
+  color: var(--mb-fg);
+}
+
+.feedMeta{ display:flex; gap:10px; align-items:center; }
+.avatar{
+  width: 34px; height: 34px;
+  border-radius: 12px;
+  display:grid; place-items:center;
+  background: rgba(132,227,232,.14);
+  border: 1px solid rgba(132,227,232,.28);
+  color: var(--mb-fg);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.metaText .name{ font-weight: 800; font-size: 14px; }
+.metaText .time{ color: var(--mb-muted); font-size: 12px; margin-top: 2px; }
+
+.badges{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.badge{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--mb-stroke);
+  color: var(--mb-muted);
+}
+
+.feedTitle{ margin-top: 10px; font-weight: 800; color: var(--mb-fg); }
+.feedContent{
+  margin-top: 8px;
+  color: var(--mb-fg);
+  line-height: 1.55;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+.feedTags{ margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap; }
+.tag{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(132,227,232,.10);
+  border: 1px solid rgba(132,227,232,.22);
+  color: var(--mb-fg);
+}
+
+.feedActions{
+  margin-top: 12px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.pill{
+  border-radius: 999px;
+  padding: 9px 12px;
+  border: 1px solid var(--mb-stroke);
+  background: rgba(255,255,255,.06);
+  color: var(--mb-fg);
+  cursor: pointer;
+}
+
+.pill.primary{
+  background: linear-gradient(90deg, rgba(255,140,180,.80), rgba(132,227,232,.70));
+  border-color: rgba(255,255,255,.18);
+  color: rgba(12,14,18,.92);
+  font-weight: 900;
+}
+
+.composer{
+  position: relative;
+  z-index: 2;
+  margin-top: 12px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--mb-stroke);
+  background: rgba(255,255,255,.05);
+}
+
+.composerSummary{
+  list-style: none;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--mb-fg);
+  font-weight: 900;
+}
+
+.composerSummary::-webkit-details-marker{ display:none; }
+
+.composerHint{ font-weight: 600; color: var(--mb-muted); font-size: 12px; }
+
+.composerForm{
+  padding: 14px;
+  background: var(--mb-glass);
+  backdrop-filter: blur(14px);
+}
+
+.formRow{
+  display:grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 12px;
+}
+
+@media (max-width: 860px){
+  .formRow{ grid-template-columns: 1fr; }
+  .cinemaActions{ justify-content:flex-end; }
+}
+
+.field{ display:block; }
+.label{ color: var(--mb-muted); font-size: 12px; margin-bottom: 6px; }
+.input, .textarea{
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--mb-stroke);
+  background: rgba(255,255,255,.06);
+  color: var(--mb-fg);
+  padding: 10px 12px;
+  outline: none;
+}
+
+.textarea{
+  resize: vertical;         /* ✅ 可伸縮：往下拉高，不會擠左右寬度 */
+  min-height: 96px;
+  max-height: 320px;
+  line-height: 1.5;
+}
+
+.help{ margin-top: 8px; color: var(--mb-muted); font-size: 12px; }
+
+.composerBtns{
+  display:flex;
+  justify-content:flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.composerNote{
+  margin-top: 10px;
+  color: var(--mb-muted);
+  font-size: 12px;
+}
+
+/* 依登入狀態控制（JS 會加 data-role） */
+:root[data-role="guest"] #btnOpenComposer,
+:root[data-role="guest"] #composerDetails{
+  display:none;
+}
+
+
