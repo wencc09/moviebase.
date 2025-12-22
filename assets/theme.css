@@ -385,3 +385,75 @@ a{ color: inherit; }
     background: color-mix(in srgb, var(--accent2) 35%, transparent);
   }
 }
+/* =========================
+   Bigger Login Modal (index/app 共用)
+   貼到 assets/theme.css 或 assets/style.css 最底部
+========================= */
+
+/* 整個登入視窗放大 */
+.modal .modalCard,
+.modal .modalBox{
+  width: min(620px, calc(100% - 28px)) !important;
+  padding: 22px 22px !important;
+  border-radius: 22px !important;
+}
+
+/* 標題/說明字放大一點 */
+.modal .modalHead b,
+.modal .modalBox h3{
+  font-size: 18px !important;
+}
+
+.modal .hint,
+.modal .small{
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+}
+
+/* 兩扇門按鈕（訪客/Google）變大一點 */
+.modal .bigChoice{
+  padding: 16px 16px !important;
+  border-radius: 18px !important;
+}
+
+.modal .bigChoice b{
+  font-size: 15px !important;
+}
+
+.modal .bigChoice span{
+  font-size: 13px !important;
+}
+
+/* Google 登入按鈕區置中 + 放大（Google 按鈕常在 div/iframe 內） */
+#gsiBtn{
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin-top: 6px !important;
+}
+
+/* 盡量抓到 Google renderButton 產生的第一層容器來縮放 */
+#gsiBtn > div{
+  transform: scale(1.18) !important;
+  transform-origin: top center !important;
+}
+
+/* 有些版本會塞 iframe，這個保險一起放大 */
+#gsiBtn iframe{
+  transform: scale(1.18) !important;
+  transform-origin: top center !important;
+}
+
+/* 手機不要太誇張，避免超出 */
+@media (max-width: 520px){
+  .modal .modalCard,
+  .modal .modalBox{
+    width: min(560px, calc(100% - 24px)) !important;
+    padding: 18px 18px !important;
+  }
+  #gsiBtn > div,
+  #gsiBtn iframe{
+    transform: scale(1.05) !important;
+  }
+}
+
