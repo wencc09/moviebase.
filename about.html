@@ -96,13 +96,16 @@
   <div class="toast" id="toast"></div>
 
   <script src="./assets/app.js"></script>
-  <script>
-    // 介紹頁：如果是入口跳轉來的，或第一次進來，都彈一次 modal
-    //window.addEventListener("load", ()=>{
-      const qs = new URLSearchParams(location.search);
-      if(qs.get("fromIntro") === "1") setTimeout(()=> MB_openLoginModal(), 450);
-      else setTimeout(()=> MB_openLoginModal(), 650);//
-    });
-  </script>
+
+  <!-- about.html：body 底部保留這樣就好 -->
+<script src="./assets/app.js" defer></script>
+<script>
+  // 介紹頁：如果是入口跳轉來的，或第一次進來，都彈一次 modal
+  window.addEventListener("load", () => {
+    const qs = new URLSearchParams(location.search);
+    if (qs.get("fromIntro") === "1") setTimeout(() => MB_openLoginModal(), 450);
+    else setTimeout(() => MB_openLoginModal(), 650);
+  });
+</script>
 </body>
 </html>
