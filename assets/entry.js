@@ -1,21 +1,9 @@
-// assets/entry.js
+// assets/entry.js (v2 stable)
+// - After splash ends OR user clicks: open identity modal (NOT navigate) to avoid flash screen
 (function () {
   const $ = (s) => document.querySelector(s);
 
   const SPLASH_DURATION_MS = 4200;
-  const TO_APP_URL = "app.html#about";
-
-  function openModalChoose() {
-    const m = $("#modal");
-    if (!m) return;
-
-    // reset to "choose identity" view
-    $("#chooseBox")?.classList.remove("hidden");
-    $("#googleBox")?.classList.add("hidden");
-
-    m.classList.add("open");
-    m.setAttribute("aria-hidden", "false");
-  }
 
   function hideSplash() {
     const splash = $("#splash");
@@ -27,11 +15,25 @@
     }, 520);
   }
 
-  function goToAppAbout() {
+  function openChooseModal() {
+    // Prefer unified modal function from app.js
+    if (window.MB_openLoginModal) {
+      window.MB_openLoginModal({ reset: true });
+      return;
+    }
+
+    // fallback
+    const m = $("#modal");
+    if (!m) return;
+    $("#chooseBox")?.classList.remove("hidden");
+    $("#googleBox")?.classList.add("hidden");
+    m.classList.add("open");
+    m.setAttribute("aria-hidden", "false");
+  }
+
+  function finishToChoose() {
     hideSplash();
-    setTimeout(() => {
-      location.href = TO_APP_URL;
-    }, 260);
+    setTimeout(openChooseModal, 260);
   }
 
   function initSplashFlow() {
@@ -41,44 +43,34 @@
     let done = false;
     let timer = null;
 
-    const finishToApp = () => {
+    const finish = (e) => {
       if (done) return;
       done = true;
-      clearTimeout(timer);
-      goToAppAbout();
-    };
-
-    const skipToChoose = (e) => {
       e?.preventDefault?.();
       e?.stopPropagation?.();
-      if (done) return;
-      done = true;
       clearTimeout(timer);
-
-      hideSplash();
-      setTimeout(openModalChoose, 260);
+      finishToChoose();
     };
 
-    timer = setTimeout(finishToApp, SPLASH_DURATION_MS);
-    splash.addEventListener("click", finishToApp);
-    $("#btnSkip")?.addEventListener("click", skipToChoose);
+    timer = setTimeout(finish, SPLASH_DURATION_MS);
+
+    splash.addEventListener("click", finish);
+    $("#btnSkip")?.addEventListener("click", finish);
 
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") skipToChoose(e);
+      if (e.key === "Escape") finish(e);
     });
   }
 
   function initChooseHandlers() {
-    // Login -> show Google area
+    // Login -> show Google area (do NOT set mode user here!)
     $("#chooseLogin")?.addEventListener("click", () => {
-      localStorage.setItem("mode", "user"); // 先標記，真的登入成功後 app.js 會改成 user + 存 user
       $("#chooseBox")?.classList.add("hidden");
       $("#googleBox")?.classList.remove("hidden");
     });
 
-    // Guest -> enter as guest
+    // Guest -> enter hall as guest
     $("#chooseGuest")?.addEventListener("click", () => {
-      // 走你原本規則：訪客進 hall
       localStorage.setItem("mode", "guest");
       location.href = "hall.html?mode=guest";
     });
