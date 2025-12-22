@@ -244,3 +244,302 @@ body{ margin:0; overflow-x:hidden; }
   from{ opacity:0; transform: translateY(6px); }
   to{ opacity:1; transform: translateY(0); }
 }
+
+/* ===== Theater (Post Wall) ===== */
+
+.page-theater .pageHead{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+}
+.page-theater .pageTitle h1{
+  margin:0;
+  font-size:28px;
+  letter-spacing:.6px;
+}
+.page-theater .pageTitle p{
+  margin:6px 0 0;
+  opacity:.8;
+  font-size:13px;
+}
+.theaterActions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.tagSearch{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  backdrop-filter: blur(10px);
+}
+.tagSearch input{
+  width:min(320px, 48vw);
+  border:0;
+  outline:0;
+  background:transparent;
+  color:inherit;
+  font-size:14px;
+}
+
+.cinemaWrap{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) 360px;
+  gap:16px;
+  align-items:start;
+}
+
+/* 電影院大螢幕容器 */
+.cinemaScreen{
+  position:relative;
+  border-radius:22px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.14);
+  background: radial-gradient(1200px 500px at 30% 10%, rgba(124,58,237,.18), transparent 60%),
+              radial-gradient(900px 450px at 70% 30%, rgba(34,211,238,.14), transparent 55%),
+              rgba(0,0,0,.28);
+  box-shadow: 0 18px 70px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+.cinemaScreen::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:24px;
+  background: linear-gradient(135deg, rgba(124,58,237,.35), rgba(34,211,238,.20), rgba(251,113,133,.20));
+  filter: blur(12px);
+  opacity:.35;
+  pointer-events:none;
+}
+.screenInner{
+  position:relative;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(16,26,51,.45);
+  backdrop-filter: blur(14px);
+  overflow:hidden;
+}
+.screenTopBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  font-size:12px;
+  letter-spacing:.5px;
+}
+.screenFeed{
+  max-height: calc(100vh - 240px);
+  overflow:auto;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.loadingLine{
+  padding:16px;
+  opacity:.8;
+}
+
+/* 海報卡貼文 */
+.postCard{
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.18);
+  padding:12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.postCard:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 44px rgba(0,0,0,.45);
+}
+.postHead{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.avatar{
+  width:38px;
+  height:38px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.avatar img{ width:100%; height:100%; object-fit:cover; }
+.meta{ flex:1; min-width:0; }
+.meta .name{ font-weight:650; font-size:14px; }
+.meta .time{ font-size:12px; opacity:.75; margin-top:2px; }
+.postActions{ display:flex; gap:6px; }
+.postBody{ margin-top:10px; }
+.postText{ line-height:1.55; font-size:14px; opacity:.95; }
+.postPhoto{
+  margin-top:10px;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.12);
+}
+.postPhoto img{ width:100%; display:block; }
+
+.tagRow{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.tagBadge{
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.tagBadge:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+}
+
+.screenEmpty{
+  padding:26px 18px 34px;
+  text-align:center;
+  opacity:.85;
+}
+.emptyTitle{ font-size:16px; font-weight:650; }
+.emptyHint{ margin-top:6px; font-size:13px; opacity:.8; }
+
+/* 右側可伸縮抽屜：新增貼文 */
+.composerDrawer{
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(16,26,51,.45);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.45);
+  overflow:hidden;
+  transition: transform .22s ease, opacity .22s ease, max-width .22s ease;
+}
+.composerDrawer.is-collapsed{
+  opacity:0;
+  max-width:0;
+  transform: translateX(16px);
+  pointer-events:none;
+}
+.composerHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 12px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.composerTitle{ font-weight:700; letter-spacing:.4px; }
+.composerBody{ padding:12px; }
+.composeModeRow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.chip{
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+}
+.chip.active{
+  border-color: rgba(34,211,238,.45);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.12);
+}
+.composerHint{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 10px;
+  border-radius:14px;
+  border:1px dashed rgba(255,255,255,.18);
+  background: rgba(0,0,0,.18);
+  margin-bottom:10px;
+  font-size:12px;
+  opacity:.9;
+}
+.composerForm textarea,
+.composerForm input[type="text"]{
+  width:100%;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.18);
+  color: inherit;
+  padding:10px 12px;
+  outline:none;
+}
+.composerForm textarea{ resize: vertical; min-height:130px; }
+.composerForm input[type="text"]{ margin-top:10px; }
+
+.composerFooter{
+  margin-top:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.fileBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  cursor:pointer;
+  font-size:12px;
+  opacity:.92;
+}
+.fileBtn input{ display:none; }
+.smallNote{
+  margin-top:10px;
+  font-size:12px;
+  opacity:.75;
+}
+
+/* RWD：手機改成底部抽屜 */
+@media (max-width: 980px){
+  .cinemaWrap{ grid-template-columns: 1fr; }
+  .composerDrawer{
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 50;
+  }
+  .composerDrawer.is-collapsed{
+    transform: translateY(16px);
+  }
+  .screenFeed{ max-height: calc(100vh - 340px); }
+}
