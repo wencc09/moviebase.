@@ -168,69 +168,6 @@
     </section>
 
 
-          <!-- 可伸縮新增貼文 -->
-          <details class="composer" id="composerDetails">
-            <summary class="composerSummary">
-              <span>＋ 新增貼文</span>
-              <span class="composerHint">（展開 / 收合）</span>
-            </summary>
-
-            <form id="postForm" class="composerForm">
-              <div class="formRow">
-                <label class="field">
-                  <div class="label">片名/影集名（可空白）</div>
-                  <input class="input" name="title" maxlength="40" placeholder="例如：進擊的巨人 最終季" />
-                </label>
-
-                <label class="field">
-                  <div class="label">類型</div>
-                  <select class="input" name="type">
-                    <option value="movie">電影</option>
-                    <option value="series">影集</option>
-                    <option value="anime">動畫</option>
-                    <option value="other">其他</option>
-                  </select>
-                </label>
-              </div>
-
-              <label class="field">
-                <div class="label">內容</div>
-                <textarea class="textarea" name="content" rows="4" maxlength="400"
-                  placeholder="寫下你此刻的心情、票根、觀影進度…（400字內）"></textarea>
-                <div class="help">提示：可拖曳右下角讓輸入框變高（不會擠壓左右寬度）</div>
-              </label>
-
-              <div class="formRow">
-                <label class="field">
-                  <div class="label">標籤（用空格分隔）</div>
-                  <input class="input" name="tags" maxlength="80" placeholder="#感動 #燃 #催淚" />
-                </label>
-
-                <label class="field">
-                  <div class="label">心情</div>
-                  <select class="input" name="mood">
-                    <option value="5">★★★★★ 超推</option>
-                    <option value="4">★★★★ 喜歡</option>
-                    <option value="3" selected>★★★ 普通</option>
-                    <option value="2">★★ 不太行</option>
-                    <option value="1">★ 雷</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="composerBtns">
-                <button class="pill" type="button" id="btnCloseComposer">收合</button>
-                <button class="pill primary" type="submit">發布</button>
-              </div>
-
-              <div class="composerNote" id="composerNote">
-                ※ 訪客只能瀏覽。登入後才會開放「新增貼文」。
-              </div>
-            </form>
-          </details>
-        </div>
-      </section>
-
       <!-- ✅ records -->
       <section class="card tabPanel" id="tab-records">
         <h2>📒 觀影紀錄（登入限定）</h2>
