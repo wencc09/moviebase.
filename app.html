@@ -5,15 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MovieBase｜主站</title>
 
+  <!-- ✅ 先套用已儲存主題，避免閃一下 -->
+  <script>
+    (function(){
+      const t = localStorage.getItem("moviebase_theme") || localStorage.getItem("theme");
+      if(t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+
   <link rel="stylesheet" href="./assets/theme.css">
   <link rel="stylesheet" href="./assets/style.css">
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="./assets/page_theater.js" defer></script>
-
-
-
-
 
   <style>
     .tabsWrap{ margin-top: 16px; display:grid; gap:14px; }
@@ -83,6 +86,7 @@
   <div class="wrap">
     <div class="tabsWrap">
 
+      <!-- ✅ lobby -->
       <section class="card tabPanel is-on" id="tab-lobby">
         <h2>🎬 影院大廳（主分頁）</h2>
         <div class="muted">
@@ -95,94 +99,117 @@
         </div>
       </section>
 
-     <!-- ===== 漂浮影廳（貼文牆）===== -->
-<section class="tabPanel" id="panel-feed" data-panel="feed">
-  <div class="cinemaScreen">
-    <div class="cinemaBezel"></div>
-    <div class="cinemaGrain" aria-hidden="true"></div>
+      <!-- ✅ hall（貼文牆） -->
+      <section class="tabPanel" id="tab-hall">
+        <div class="cinemaScreen">
+          <div class="cinemaBezel"></div>
+          <div class="cinemaGrain" aria-hidden="true"></div>
 
-    <header class="cinemaHeader">
-      <div class="cinemaTitle">
-        <div class="cinemaIcon">🍿</div>
-        <div>
-          <div class="hTitle">漂浮影廳（貼文牆）</div>
-          <div class="hSub">像在影院看大家的觀影心情；登入後可發文（下一步再做按讚/留言）。</div>
+          <header class="cinemaHeader">
+            <div class="cinemaTitle">
+              <div class="cinemaIcon">🍿</div>
+              <div>
+                <div class="hTitle">漂浮影廳（貼文牆）</div>
+                <div class="hSub">訪客可看貼文；登入後可發文（按讚/留言下一步）。</div>
+              </div>
+            </div>
+
+            <div class="cinemaActions">
+              <input id="feedSearchInput" class="input" style="width:min(240px, 52vw)" placeholder="搜尋 #tag 或關鍵字">
+              <button class="pill" id="feedSearchBtn" type="button">搜尋</button>
+              <button class="pill" id="btnFeedRefresh" type="button">刷新</button>
+              <button class="pill primary" id="btnOpenComposer" type="button">＋ 新增貼文</button>
+            </div>
+          </header>
+
+          <div class="cinemaBody">
+            <div id="feedEmpty" class="feedEmpty">目前還沒有貼文。先登入後發第一篇吧 🍿</div>
+            <div id="feedList" class="feedList" aria-live="polite"></div>
+          </div>
+
+          <!-- 可伸縮新增貼文 -->
+          <details class="composer" id="composerDetails">
+            <summary class="composerSummary">
+              <span>＋ 新增貼文</span>
+              <span class="composerHint">（展開 / 收合）</span>
+            </summary>
+
+            <form id="postForm" class="composerForm">
+              <div class="formRow">
+                <label class="field">
+                  <div class="label">片名/影集名（可空白）</div>
+                  <input class="input" name="title" maxlength="40" placeholder="例如：進擊的巨人 最終季" />
+                </label>
+
+                <label class="field">
+                  <div class="label">類型</div>
+                  <select class="input" name="type">
+                    <option value="movie">電影</option>
+                    <option value="series">影集</option>
+                    <option value="anime">動畫</option>
+                    <option value="other">其他</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="field">
+                <div class="label">內容</div>
+                <textarea class="textarea" name="content" rows="4" maxlength="400"
+                  placeholder="寫下你此刻的心情、票根、觀影進度…（400字內）"></textarea>
+                <div class="help">提示：可拖曳右下角讓輸入框變高（不會擠壓左右寬度）</div>
+              </label>
+
+              <div class="formRow">
+                <label class="field">
+                  <div class="label">標籤（用空格分隔）</div>
+                  <input class="input" name="tags" maxlength="80" placeholder="#感動 #燃 #催淚" />
+                </label>
+
+                <label class="field">
+                  <div class="label">心情</div>
+                  <select class="input" name="mood">
+                    <option value="5">★★★★★ 超推</option>
+                    <option value="4">★★★★ 喜歡</option>
+                    <option value="3" selected>★★★ 普通</option>
+                    <option value="2">★★ 不太行</option>
+                    <option value="1">★ 雷</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="composerBtns">
+                <button class="pill" type="button" id="btnCloseComposer">收合</button>
+                <button class="pill primary" type="submit">發布</button>
+              </div>
+
+              <div class="composerNote" id="composerNote">
+                ※ 訪客只能瀏覽。登入後才會開放「新增貼文」。
+              </div>
+            </form>
+          </details>
         </div>
-      </div>
+      </section>
 
-      <div class="cinemaActions">
-        <button class="pill" id="btnFeedRefresh" type="button">刷新</button>
-        <button class="pill primary" id="btnOpenComposer" type="button">＋ 新增貼文</button>
-      </div>
-    </header>
-
-    <div class="cinemaBody">
-      <div id="feedEmpty" class="feedEmpty">目前還沒有貼文。先登入後發第一篇吧 🍿</div>
-      <div id="feedList" class="feedList" aria-live="polite"></div>
-    </div>
-
-    <!-- 可伸縮新增貼文：不占寬度、只往下展開 -->
-    <details class="composer" id="composerDetails">
-      <summary class="composerSummary">
-        <span>＋ 新增貼文</span>
-        <span class="composerHint">（展開 / 收合）</span>
-      </summary>
-
-      <form id="postForm" class="composerForm">
-        <div class="formRow">
-          <label class="field">
-            <div class="label">片名/影集名（可空白）</div>
-            <input class="input" name="title" maxlength="40" placeholder="例如：進擊的巨人 最終季" />
-          </label>
-
-          <label class="field">
-            <div class="label">類型</div>
-            <select class="input" name="type">
-              <option value="movie">電影</option>
-              <option value="series">影集</option>
-              <option value="anime">動畫</option>
-              <option value="other">其他</option>
-            </select>
-          </label>
+      <!-- ✅ records -->
+      <section class="card tabPanel" id="tab-records">
+        <h2>📒 觀影紀錄（登入限定）</h2>
+        <div class="muted" id="recordsGuardText">檢查中…</div>
+        <div class="hr"></div>
+        <button class="btn primary" id="btnAddRecord" type="button">＋ 新增紀錄（下一步做）</button>
+        <div class="muted" style="margin-top:10px;">
+          這頁你後續要切：已觀看 / 觀看中 / 未觀看（我下一步可以幫你做成真正 UI）。
         </div>
+      </section>
 
-        <label class="field">
-          <div class="label">內容</div>
-          <textarea class="textarea" name="content" rows="4" maxlength="400"
-            placeholder="寫下你此刻的心情、票根、觀影進度…（400字內）"></textarea>
-          <div class="help">提示：可拖曳右下角讓輸入框變高（不會擠壓左右寬度）</div>
-        </label>
-
-        <div class="formRow">
-          <label class="field">
-            <div class="label">標籤（用空格分隔）</div>
-            <input class="input" name="tags" maxlength="80" placeholder="#感動 #燃 #催淚" />
-          </label>
-
-          <label class="field">
-            <div class="label">心情</div>
-            <select class="input" name="mood">
-              <option value="5">★★★★★ 超推</option>
-              <option value="4">★★★★ 喜歡</option>
-              <option value="3" selected>★★★ 普通</option>
-              <option value="2">★★ 不太行</option>
-              <option value="1">★ 雷</option>
-            </select>
-          </label>
+      <!-- ✅ account -->
+      <section class="card tabPanel" id="tab-account">
+        <h2>👤 我的帳戶</h2>
+        <div class="muted" id="accInfo">讀取中…</div>
+        <div class="hr"></div>
+        <div class="muted">
+          這裡之後會放：我的貼文、已按讚收藏、暱稱修改等（下一步接）。
         </div>
-
-        <div class="composerBtns">
-          <button class="pill" type="button" id="btnCloseComposer">收合</button>
-          <button class="pill primary" type="submit">發布</button>
-        </div>
-
-        <div class="composerNote" id="composerNote">
-          ※ 訪客只能瀏覽。登入後才會開放「新增貼文」。
-        </div>
-      </form>
-    </details>
-  </div>
-</section>
+      </section>
 
     </div>
   </div>
@@ -194,7 +221,7 @@
     <button class="pill" type="button" data-tab="account">帳戶</button>
   </nav>
 
-  <!-- 這裡先用簡版 modal（之後你要統一成「兩扇門」我也能再幫你換） -->
+  <!-- 登入 modal -->
   <div class="modal" id="loginModal">
     <div class="modalBox fadeIn">
       <h3>登入以啟用完整功能</h3>
@@ -273,42 +300,26 @@
         btn.addEventListener("click", ()=> safeGoTab(btn.dataset.tabjump));
       });
 
-      // hall
-      const hallGuard = document.getElementById("hallGuardText");
-      hallGuard.textContent =
-        (MB.state.mode === "user")
-          ? "✅ 已登入：可互動（下一步接上按讚留言）"
-          : "👀 訪客模式：可看貼文，但互動會被鎖";
-
-      document.getElementById("btnNewPost")?.addEventListener("click", ()=>{
-        if(!MB_requireLogin("新增貼文")) return;
-        toast("下一步才會做：新增貼文");
-      });
-      document.getElementById("btnLikeTest")?.addEventListener("click", ()=>{
-        if(!MB_requireLogin("按讚")) return;
-        toast("下一步才會做：按讚寫入試算表");
-      });
-
-      // records
+      // records guard text
       const recordsGuard = document.getElementById("recordsGuardText");
       recordsGuard.textContent =
         (MB.state.mode === "user")
           ? "✅ 已登入：可以開始做紀錄 UI（下一步接資料）"
-          : "🔒 訪客：已阻擋（符合規格）";
+          : "🔒 訪客：此頁會被擋（已符合規格，點功能會跳登入）";
 
       document.getElementById("btnAddRecord")?.addEventListener("click", ()=>{
         if(!MB_requireLogin("新增紀錄")) return;
         toast("下一步才會做：新增紀錄表單");
       });
 
-      // account
+      // account info
       const acc = document.getElementById("accInfo");
       const isUser = (MB.state.mode === "user" && MB.state.user);
       if(isUser){
         const nm = MB.state.user.name || MB.state.user.email || "";
         acc.innerHTML = `✅ 已登入<br>暱稱：<b>${nm}</b>`;
       }else{
-        acc.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才會有：我的貼文 / 已按讚貼文`;
+        acc.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才會有：我的貼文 / 已按讚收藏`;
       }
     });
   </script>
