@@ -340,28 +340,13 @@ window.MB_openLoginModal = (opts) => openLoginModal(opts || { reset: true });
 
 window.addEventListener("load", boot);
 
-/* =========================
-   Feed Wall (Local Demo + Search + Login Gate)
-========================= */
+/* ===========================================================
+   Feed Wall (SERVER: postList + postCreate)  ✅ 改這裡：不再用 localStorage
+=========================================================== */
 (function () {
-  const LS_KEY = "moviebase_feed_posts_v1";
-
+  // 你頁面可能用 feedList / feedEmpty / postForm ... 這些 id
   function $(id) { return document.getElementById(id); }
   function nowISO() { return new Date().toISOString(); }
-
-  function loadPosts() {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function savePosts(posts) {
-    localStorage.setItem(LS_KEY, JSON.stringify(posts));
-  }
 
   function formatTime(iso) {
     try {
@@ -404,7 +389,6 @@ window.addEventListener("load", boot);
       ...(post.tags || [])
     ].join(" ").toLowerCase();
 
-    // 若是 #tag，強化用 tags 比對
     if (qq.startsWith("#")) {
       const t = qq.toLowerCase();
       return (post.tags || []).some(x => String(x).toLowerCase() === t) || hay.includes(t);
@@ -413,12 +397,87 @@ window.addEventListener("load", boot);
     return hay.includes(qq.toLowerCase());
   }
 
-  function render(q = "") {
+  // =========================
+  // ✅ 後端 API：讀貼文牆（任何人可讀）
+  // =========================
+  async function fetchPostsFromServer() {
+    const url = `${SCRIPT_URL}?action=postList&t=${Date.now()}`;
+    const res = await fetch(url, { method: "GET" });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "postList failed");
+
+    // 後端回傳格式：[{id,createdAt,authorName,authorAvatar,content,hashtags,category,mood,rating...}]
+    // 前端 UI 期望格式：{author,title,type,typeLabel,content,tags,mood,createdAt}
+    const typeLabelMap = { movie: "電影", series: "影集", anime: "動畫", other: "其他" };
+
+    return (data.posts || []).map(p => {
+      const rawTags = p.hashtags || "";
+      const tags = Array.isArray(p.tags) ? p.tags : normalizeTags(rawTags);
+
+      // mood/rating 可能是文字或數字，這裡做個容錯
+      const moodNum = Number(p.mood);
+      const mood = Number.isFinite(moodNum) ? Math.min(5, Math.max(1, moodNum)) : 3;
+
+      // category 若你後端存 "movie/series/anime/other" 或中文都可顯示
+      const type = (p.category && ["movie","series","anime","other"].includes(p.category)) ? p.category : "other";
+
+      return {
+        id: p.id || (crypto?.randomUUID?.() || `${Date.now()}_${Math.random()}`),
+        author: p.authorName || "訪客",
+        title: p.title || "", // 後端目前沒有 title 欄位就會空白（UI 已支援）
+        type,
+        typeLabel: typeLabelMap[type] || (p.category || "其他"),
+        content: p.content || "",
+        tags,
+        mood,
+        createdAt: p.createdAt || nowISO(),
+      };
+    });
+  }
+
+  // =========================
+  // ✅ 後端 API：發文（寫入 Sheet）
+  // =========================
+  async function createPostToServer(postForServer) {
+    const idToken = localStorage.getItem("id_token") || ""; // 登入才有；若後端允許訪客發文也可空字串
+
+    const payload = {
+      action: "postCreate",
+      idToken, // 你的 Code.gs 用 data.idToken
+      post: postForServer
+    };
+
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "postCreate failed");
+    return data;
+  }
+
+  // =========================
+  // UI render
+  // =========================
+  async function render(q = "") {
     const list = $("feedList");
     const empty = $("feedEmpty");
     if (!list || !empty) return;
 
-    const posts = loadPosts().filter(p => matchQuery(p, q));
+    let posts = [];
+    try {
+      posts = await fetchPostsFromServer();
+    } catch (e) {
+      console.error(e);
+      empty.style.display = "block";
+      empty.textContent = "貼文載入失敗（請確認後端 postList 與部署權限）";
+      list.innerHTML = "";
+      return;
+    }
+
+    posts = posts.filter(p => matchQuery(p, q));
+
     list.innerHTML = "";
 
     if (!posts.length) {
@@ -469,7 +528,8 @@ window.addEventListener("load", boot);
         const t = el.getAttribute("data-tag");
         const inp = $("feedSearchInput");
         if (inp) inp.value = t;
-        render(t);
+        // 重新 render（用同一個搜尋字）
+        render(t).catch(console.error);
       });
     });
   }
@@ -483,21 +543,23 @@ window.addEventListener("load", boot);
     const searchBtn = $("feedSearchBtn");
     const searchInput = $("feedSearchInput");
 
-    if (refreshBtn) refreshBtn.addEventListener("click", () => render(searchInput?.value || ""));
+    if (refreshBtn) refreshBtn.addEventListener("click", () => render(searchInput?.value || "").catch(console.error));
 
-    if (searchBtn) searchBtn.addEventListener("click", () => render(searchInput?.value || ""));
+    if (searchBtn) searchBtn.addEventListener("click", () => render(searchInput?.value || "").catch(console.error));
     if (searchInput) {
       searchInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          render(searchInput.value || "");
+          render(searchInput.value || "").catch(console.error);
         }
       });
     }
 
     if (openBtn && details) {
       openBtn.addEventListener("click", () => {
+        // ✅ 若你想「訪客也能發文」：把這行 gate 移除即可
         if (window.MB_requireLogin && !window.MB_requireLogin("新增貼文")) return;
+
         details.open = true;
         details.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
@@ -508,14 +570,15 @@ window.addEventListener("load", boot);
     }
 
     if (form) {
-      form.addEventListener("submit", (e) => {
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
+        // ✅ 若你想「訪客也能發文」：把這行 gate 移除即可
         if (window.MB_requireLogin && !window.MB_requireLogin("發布貼文")) return;
 
         const fd = new FormData(form);
-        const title = (fd.get("title") || "").toString().trim();
-        const type = (fd.get("type") || "movie").toString();
+        const title = (fd.get("title") || "").toString().trim();   // 目前後端未存 title（可選）
+        const type = (fd.get("type") || "movie").toString();       // movie/series/anime/other
         const content = (fd.get("content") || "").toString().trim();
         const tags = normalizeTags((fd.get("tags") || "").toString());
         const mood = Number(fd.get("mood") || 3);
@@ -525,39 +588,36 @@ window.addEventListener("load", boot);
           return;
         }
 
-        const author =
-          (document.documentElement.getAttribute("data-user-name"))
-          || (MB?.state?.user?.name)
-          || "MovieBase";
-
-        const typeLabelMap = { movie: "電影", series: "影集", anime: "動畫", other: "其他" };
-        const post = {
-          id: crypto?.randomUUID?.() || `${Date.now()}_${Math.random()}`,
-          author,
-          title,
-          type,
-          typeLabel: typeLabelMap[type] || "其他",
+        // 後端欄位：content / hashtags / category / mood / rating（你的 Code.gs 有這些）
+        const postForServer = {
           content,
-          tags,
-          mood: Math.min(5, Math.max(1, mood)),
-          createdAt: nowISO(),
+          hashtags: tags.join(" "),
+          category: type, // 用 type 當 category
+          mood: Math.min(5, Math.max(1, Number.isFinite(mood) ? mood : 3)),
+          rating: "",     // 你若未來想做星等，這裡可填
+          // title: title, // 如果你後端加 title 欄位，再打開這行
         };
 
-        const posts = loadPosts();
-        posts.unshift(post);
-        savePosts(posts);
+        try {
+          await createPostToServer(postForServer);
 
-        form.reset();
-        if (details) details.open = false;
+          form.reset();
+          if (details) details.open = false;
 
-        render(searchInput?.value || "");
+          // ✅ 發完文立刻重載：跨裝置同步
+          await render(searchInput?.value || "");
+        } catch (err) {
+          console.error(err);
+          alert("發文失敗：請確認後端 postCreate / 部署權限 / token 驗證");
+        }
       });
     }
 
     // 登入/登出後，自動刷新（讓作者名、權限提示同步）
-    window.addEventListener("mb:auth", () => render(searchInput?.value || ""));
+    window.addEventListener("mb:auth", () => render(searchInput?.value || "").catch(console.error));
 
-    render("");
+    // 首次載入
+    render("").catch(console.error);
   }
 
   window.addEventListener("DOMContentLoaded", () => {
