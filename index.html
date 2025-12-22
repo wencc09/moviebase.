@@ -643,41 +643,7 @@
 
   <script src="./assets/entry.js" defer></script>
   <script src="./assets/app.js" defer></script>
-
-  <script>
-    // 入口頁：顯示 Google 按鈕 + 存 token
-    window.addEventListener("load", () => {
-      if (!window.google || !google.accounts?.id) return;
-
-      const CLIENT_ID = window.MB_CLIENT_ID || window.GOOGLE_CLIENT_ID || "";
-      if (!CLIENT_ID) return;
-
-      google.accounts.id.initialize({
-        client_id: CLIENT_ID,
-        callback: async (resp) => {
-          try {
-            localStorage.setItem("id_token", resp.credential);
-
-            if (window.MB && typeof window.MB.me === "function") {
-              const me = await window.MB.me(resp.credential);
-              if (me && me.name) localStorage.setItem("mb_user_name", me.name);
-            }
-
-            const name = localStorage.getItem("mb_user_name");
-            document.getElementById("loginState").textContent =
-              name ? `目前：已登入（${name}）` : "目前：已登入";
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      });
-
-      google.accounts.id.renderButton(document.getElementById("gsiBtn"), {
-        theme: "outline",
-        size: "large",
-        width: 280
-      });
-    });
+  
   </script>
 </body>
 </html>
