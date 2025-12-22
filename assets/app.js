@@ -1,34 +1,24 @@
-/* MovieBase shared app.js (v3 stable)
-   - single source of truth for auth + theme + modal
-   - fixes: double Google init, SDK race, guest UI, modal reset
+/* MovieBase shared app.js
+   - auth state (guest/user/unknown)
+   - login modal (supports #loginModal and #modal)
+   - permission gates (front-end)
+   - theme toggle (dark/light) + persistence
+   - ✅ supports "entry page no-auto-mode" + "redirect after auth"
 */
 
 const CONFIG = {
-  GAS_WEBAPP_URL:
-    "https://script.google.com/macros/s/AKfycbyuipb05zxPbPp7iAotqe_Oya4je2s-l3COcJ8kDO7e4VHjdLRuNwJhrymkPN02b9Sd/exec",
-  GOOGLE_CLIENT_ID:
-    "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com",
+  GAS_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyuipb05zxPbPp7iAotqe_Oya4je2s-l3COcJ8kDO7e4VHjdLRuNwJhrymkPN02b9Sd/exec",
+  GOOGLE_CLIENT_ID: "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com",
 };
-
-// Allow override from html if you want later:
-// window.MB_CONFIG = { GAS_WEBAPP_URL: "...", GOOGLE_CLIENT_ID: "..." }
-if (window.MB_CONFIG) {
-  Object.assign(CONFIG, window.MB_CONFIG);
-}
 
 const MB = {
   state: {
-    mode: "unknown", // "guest" | "user"
+    mode: "unknown", // "unknown" | "guest" | "user"
     user: null,      // {sub,email,name,picture}
-  },
+  }
 };
 
 const $ = (q, root = document) => root.querySelector(q);
-
-function show(el, on) {
-  if (!el) return;
-  el.style.display = on ? "" : "none";
-}
 
 /* =========================
    Toast
@@ -54,12 +44,28 @@ async function apiPOST(payload) {
   return await res.json();
 }
 
-async function verifyMe(idTokenOverride) {
-  const idToken = idTokenOverride || localStorage.getItem("id_token");
+async function verifyMe() {
+  const idToken = localStorage.getItem("id_token");
   if (!idToken) return null;
   const data = await apiPOST({ action: "me", idToken });
   if (!data.ok) throw new Error(data.error || "me failed");
   return data.user;
+}
+
+/* =========================
+   Helpers: redirect after auth
+========================= */
+function getAfterAuthUrl() {
+  return window.MB_AFTER_AUTH_URL || localStorage.getItem("mb_after_auth_url") || "";
+}
+function clearAfterAuthUrl() {
+  localStorage.removeItem("mb_after_auth_url");
+}
+function goAfterAuthIfNeeded() {
+  const url = getAfterAuthUrl();
+  if (!url) return;
+  clearAfterAuthUrl();
+  location.href = url;
 }
 
 /* =========================
@@ -82,51 +88,68 @@ function setModeUser(user) {
 
 function renderAuthUI() {
   const isUser = MB.state.mode === "user" && MB.state.user;
+  const isGuest = MB.state.mode === "guest";
 
   // common header widgets (may not exist on all pages)
   const badge = $("#authBadge");
   const name = $("#authName");
   const pic = $("#authPic");
 
-  if (badge) badge.textContent = isUser ? "目前：已登入" : (MB.state.mode === "guest" ? "目前：訪客" : "目前：讀取中…");
-  if (name) name.textContent = isUser ? (MB.state.user.name || MB.state.user.email || "") : "Guest";
+  if (badge) badge.textContent = isUser ? "目前：已登入" : (isGuest ? "目前：訪客" : "目前：未登入");
+  if (name) name.textContent = isUser ? (MB.state.user.name || MB.state.user.email || "") : (isGuest ? "Guest" : "");
   if (pic) {
     pic.src = isUser ? (MB.state.user.picture || "") : "";
-    show(pic, !!(isUser && MB.state.user.picture));
+    pic.style.display = isUser && MB.state.user.picture ? "inline-block" : "none";
   }
 
-  // index header state
-  const loginState = $("#loginState");
-  if (loginState) {
-    if (isUser) {
-      const nm = MB.state.user.name || MB.state.user.email || "";
-      loginState.textContent = nm ? `目前：已登入（${nm}）` : "目前：已登入";
-    } else if (MB.state.mode === "guest") {
-      loginState.textContent = "目前：訪客";
-    } else {
-      loginState.textContent = "目前：讀取中…";
-    }
-  }
+  const show = (el, on) => { if (el) el.style.display = on ? "" : "none"; };
 
-  // Buttons (shared ids)
+  // shared ids
   const btnLogout = $("#btnLogout");
-  const btnLogoutTop = $("#btnLogoutTop"); // index topbar logout
+  const btnLogoutTop = $("#btnLogoutTop");
   const btnOpenLogin = $("#btnOpenLogin");
+  const btnGuest = $("#btnGuest");
 
+  // index style ids
   const btnLogin = $("#btnLogin");
   const btnLogin2 = $("#btnLogin2");
-  const btnGuest = $("#btnGuest");
   const btnGuest2 = $("#btnGuest2");
 
-  // ✅ 重要修正：只有「已登入」才隱藏登入/訪客，訪客仍要看得到登入入口（才能升級）
-  show(btnLogout, isUser);
-  show(btnLogoutTop, isUser);
+  // ✅ 規則（修正版）：
+  // - 已登入：只顯示登出（隱藏登入/訪客）
+  // - 訪客：仍保留「登入」按鈕（可升級 Google），但不顯示「訪客按鈕」
+  // - unknown：可顯示登入/訪客（用在某些頁面第一次進來）
+  if (isUser) {
+    show(btnLogout, true);
+    show(btnLogoutTop, true);
 
-  show(btnOpenLogin, !isUser);
-  show(btnLogin, !isUser);
-  show(btnLogin2, !isUser);
-  show(btnGuest, !isUser);
-  show(btnGuest2, !isUser);
+    show(btnOpenLogin, false);
+    show(btnLogin, false);
+    show(btnLogin2, false);
+
+    show(btnGuest, false);
+    show(btnGuest2, false);
+  } else if (isGuest) {
+    show(btnLogout, false);
+    show(btnLogoutTop, false);
+
+    show(btnOpenLogin, true);
+    show(btnLogin, true);
+    show(btnLogin2, true);
+
+    show(btnGuest, false);
+    show(btnGuest2, false);
+  } else { // unknown
+    show(btnLogout, false);
+    show(btnLogoutTop, false);
+
+    show(btnOpenLogin, true);
+    show(btnLogin, true);
+    show(btnLogin2, true);
+
+    show(btnGuest, true);
+    show(btnGuest2, true);
+  }
 }
 
 /* =========================
@@ -142,14 +165,14 @@ function requireLogin(featureName = "此功能") {
 }
 
 /* =========================
-   Modal
+   Modal (support index + pages)
 ========================= */
 function getModalEl() {
   return $("#loginModal") || $("#modal");
 }
 
-function resetIndexChooseUIIfAny() {
-  // only index has these
+function resetEntryChooserIfAny() {
+  // index 的 modal 會有 chooseBox/googleBox
   $("#chooseBox")?.classList.remove("hidden");
   $("#googleBox")?.classList.add("hidden");
 }
@@ -158,10 +181,10 @@ function openLoginModal(opts = {}) {
   const m = getModalEl();
   if (!m) return;
 
-  if (opts.reset) resetIndexChooseUIIfAny();
+  if (opts.reset) resetEntryChooserIfAny();
 
   m.classList.add("is-open");
-  m.classList.add("open"); // support index style
+  m.classList.add("open");     // index uses .open
   m.setAttribute("aria-hidden", "false");
 }
 
@@ -199,53 +222,40 @@ function initThemeToggle() {
 }
 
 /* =========================
-   Google SDK wait (fix race)
+   Google Login
 ========================= */
-async function waitForGoogleSDK(timeoutMs = 9000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (window.google && google.accounts && google.accounts.id) return true;
-    await new Promise(r => setTimeout(r, 90));
+function initGoogle() {
+  if (!window.google || !google.accounts?.id) {
+    console.warn("Google SDK not ready");
+    return;
   }
-  return false;
-}
 
-function initGoogleOnce() {
-  if (!window.google || !google.accounts?.id) return false;
-
-  // initialize
   google.accounts.id.initialize({
     client_id: CONFIG.GOOGLE_CLIENT_ID,
     callback: async (resp) => {
       try {
         localStorage.setItem("id_token", resp.credential);
-        const user = await verifyMe(resp.credential);
+        const user = await verifyMe();
         setModeUser(user);
         closeLoginModal();
         toast("登入成功");
 
-        // ✅ 可選：在 index 登入成功後，自動進主站（避免停在入口頁）
-        const isIndex = /(^|\/)index\.html$/.test(location.pathname) || location.pathname === "/" || location.pathname.endsWith("/index");
-        if (isIndex) {
-          setTimeout(() => (location.href = "app.html#about"), 250);
-        }
+        // ✅ 若入口頁設定了「登入後要去哪」→ 直接跳主站 app.html
+        goAfterAuthIfNeeded();
       } catch (e) {
         console.error(e);
-        toast("登入驗證失敗（請確認 Apps Script 的 me）");
+        toast("登入驗證失敗，請確認後端 me");
         localStorage.removeItem("id_token");
         setModeGuest();
       }
-    },
+    }
   });
 
-  // render button if container exists
   const gsi = $("#gsiBtn");
   if (gsi) {
     gsi.innerHTML = "";
-    google.accounts.id.renderButton(gsi, { theme: "outline", size: "large", width: 280 });
+    google.accounts.id.renderButton(gsi, { theme: "outline", size: "large" });
   }
-
-  return true;
 }
 
 /* =========================
@@ -254,18 +264,13 @@ function initGoogleOnce() {
 async function boot() {
   initThemeToggle();
 
-  // close buttons
+  // modal close buttons
   $("#modalClose")?.addEventListener("click", closeLoginModal);
 
-  // click backdrop close
+  // click backdrop to close
   const m = getModalEl();
   m?.addEventListener("click", (e) => {
     if (e.target === m) closeLoginModal();
-  });
-
-  // ESC close
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeLoginModal();
   });
 
   // open modal buttons
@@ -273,11 +278,11 @@ async function boot() {
   $("#btnLogin")?.addEventListener("click", () => openLoginModal({ reset: true }));
   $("#btnLogin2")?.addEventListener("click", () => openLoginModal({ reset: true }));
 
-  // guest buttons
+  // guest buttons (簡版 loginModal 用)
   const guestHandler = () => {
     setModeGuest();
     closeLoginModal();
-    toast("已用訪客模式瀏覽（禁止紀錄與互動）");
+    toast("已用訪客模式進入（禁止紀錄與互動）");
   };
   $("#btnGuest")?.addEventListener("click", guestHandler);
   $("#btnGuest2")?.addEventListener("click", guestHandler);
@@ -293,34 +298,43 @@ async function boot() {
   $("#btnLogout")?.addEventListener("click", logoutHandler);
   $("#btnLogoutTop")?.addEventListener("click", logoutHandler);
 
-  // restore auth (single truth: id_token)
-  MB.state.mode = "unknown";
-  renderAuthUI();
-
-  try {
-    const user = await verifyMe();
-    if (user) setModeUser(user);
-    else setModeGuest();
-  } catch (e) {
-    console.error(e);
-    setModeGuest();
-  }
-
-  // google init (wait for SDK to be ready)
-  const ok = await waitForGoogleSDK();
-  if (!ok) {
-    console.warn("Google SDK not ready (timeout)");
-    // still usable as guest
+  // ✅ 入口頁：不自動判定 guest/user（你要求圖三不出現身分）
+  if (window.MB_NO_AUTO_MODE) {
+    MB.state.mode = "unknown";
+    MB.state.user = null;
+    renderAuthUI();
+    initGoogle();
     return;
   }
-  initGoogleOnce();
+
+  // other pages：照常恢復身分
+  const savedMode = localStorage.getItem("mode");
+  if (savedMode === "guest") {
+    setModeGuest();
+  } else {
+    try {
+      const user = await verifyMe();
+      if (user) setModeUser(user);
+      else setModeGuest();
+    } catch (e) {
+      console.error(e);
+      setModeGuest();
+    }
+  }
+
+  initGoogle();
 }
 
 // expose for page scripts
 window.MB = MB;
+window.MB.me = async (idToken) => {
+  const tok = idToken || localStorage.getItem("id_token");
+  if (!tok) return null;
+  const data = await apiPOST({ action: "me", idToken: tok });
+  if (!data.ok) throw new Error(data.error || "me failed");
+  return data.user;
+};
 window.MB_requireLogin = requireLogin;
 window.MB_openLoginModal = (opts) => openLoginModal(opts || { reset: true });
-window.MB_closeLoginModal = closeLoginModal;
-window.MB_me = verifyMe;
 
 window.addEventListener("load", boot);
