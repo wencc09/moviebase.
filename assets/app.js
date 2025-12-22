@@ -3,7 +3,7 @@
    - login modal (supports #loginModal and #modal)
    - permission gates (front-end)
    - theme toggle (dark/light) + persistence
-   - ✅ supports "entry page no-auto-mode" + "redirect after auth"
+   - supports "entry page no-auto-mode" + "redirect after auth"
 */
 
 const CONFIG = {
@@ -77,6 +77,7 @@ function setModeGuest() {
   localStorage.removeItem("id_token");
   localStorage.setItem("mode", "guest");
   renderAuthUI();
+  window.dispatchEvent(new Event("mb:auth"));
 }
 
 function setModeUser(user) {
@@ -84,13 +85,22 @@ function setModeUser(user) {
   MB.state.user = user || null;
   localStorage.setItem("mode", "user");
   renderAuthUI();
+  window.dispatchEvent(new Event("mb:auth"));
 }
 
 function renderAuthUI() {
   const isUser = MB.state.mode === "user" && MB.state.user;
   const isGuest = MB.state.mode === "guest";
 
-  // common header widgets (may not exist on all pages)
+  // ✅ 給 CSS 用（你 theme.css 最底下有用 data-role 控制 composer）
+  document.documentElement.setAttribute("data-role", MB.state.mode);
+  if (isUser) {
+    document.documentElement.setAttribute("data-user-name", MB.state.user.name || MB.state.user.email || "MovieBase");
+  } else {
+    document.documentElement.removeAttribute("data-user-name");
+  }
+
+  // common header widgets
   const badge = $("#authBadge");
   const name = $("#authName");
   const pic = $("#authPic");
@@ -104,20 +114,18 @@ function renderAuthUI() {
 
   const show = (el, on) => { if (el) el.style.display = on ? "" : "none"; };
 
-  // shared ids
   const btnLogout = $("#btnLogout");
   const btnLogoutTop = $("#btnLogoutTop");
   const btnOpenLogin = $("#btnOpenLogin");
   const btnGuest = $("#btnGuest");
 
-  // index style ids
   const btnLogin = $("#btnLogin");
   const btnLogin2 = $("#btnLogin2");
   const btnGuest2 = $("#btnGuest2");
 
-  // ✅ 規則（修正版）：
+  // 規則：
   // - 已登入：只顯示登出（隱藏登入/訪客）
-  // - 訪客：仍保留「登入」按鈕（可升級 Google），但不顯示「訪客按鈕」
+  // - 訪客：保留「登入」按鈕（可升級 Google），但不顯示「訪客按鈕」
   // - unknown：可顯示登入/訪客（用在某些頁面第一次進來）
   if (isUser) {
     show(btnLogout, true);
@@ -139,7 +147,7 @@ function renderAuthUI() {
 
     show(btnGuest, false);
     show(btnGuest2, false);
-  } else { // unknown
+  } else {
     show(btnLogout, false);
     show(btnLogoutTop, false);
 
@@ -172,7 +180,6 @@ function getModalEl() {
 }
 
 function resetEntryChooserIfAny() {
-  // index 的 modal 會有 chooseBox/googleBox
   $("#chooseBox")?.classList.remove("hidden");
   $("#googleBox")?.classList.add("hidden");
 }
@@ -184,7 +191,7 @@ function openLoginModal(opts = {}) {
   if (opts.reset) resetEntryChooserIfAny();
 
   m.classList.add("is-open");
-  m.classList.add("open");     // index uses .open
+  m.classList.add("open");
   m.setAttribute("aria-hidden", "false");
 }
 
@@ -239,8 +246,6 @@ function initGoogle() {
         setModeUser(user);
         closeLoginModal();
         toast("登入成功");
-
-        // ✅ 若入口頁設定了「登入後要去哪」→ 直接跳主站 app.html
         goAfterAuthIfNeeded();
       } catch (e) {
         console.error(e);
@@ -264,21 +269,17 @@ function initGoogle() {
 async function boot() {
   initThemeToggle();
 
-  // modal close buttons
   $("#modalClose")?.addEventListener("click", closeLoginModal);
 
-  // click backdrop to close
   const m = getModalEl();
   m?.addEventListener("click", (e) => {
     if (e.target === m) closeLoginModal();
   });
 
-  // open modal buttons
   $("#btnOpenLogin")?.addEventListener("click", () => openLoginModal({ reset: true }));
   $("#btnLogin")?.addEventListener("click", () => openLoginModal({ reset: true }));
   $("#btnLogin2")?.addEventListener("click", () => openLoginModal({ reset: true }));
 
-  // guest buttons (簡版 loginModal 用)
   const guestHandler = () => {
     setModeGuest();
     closeLoginModal();
@@ -287,7 +288,6 @@ async function boot() {
   $("#btnGuest")?.addEventListener("click", guestHandler);
   $("#btnGuest2")?.addEventListener("click", guestHandler);
 
-  // logout buttons
   const logoutHandler = () => {
     try {
       if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
@@ -298,7 +298,7 @@ async function boot() {
   $("#btnLogout")?.addEventListener("click", logoutHandler);
   $("#btnLogoutTop")?.addEventListener("click", logoutHandler);
 
-  // ✅ 入口頁：不自動判定 guest/user（你要求圖三不出現身分）
+  // ✅ 入口頁：不自動判定 guest/user
   if (window.MB_NO_AUTO_MODE) {
     MB.state.mode = "unknown";
     MB.state.user = null;
@@ -307,7 +307,6 @@ async function boot() {
     return;
   }
 
-  // other pages：照常恢復身分
   const savedMode = localStorage.getItem("mode");
   if (savedMode === "guest") {
     setModeGuest();
@@ -325,7 +324,7 @@ async function boot() {
   initGoogle();
 }
 
-// expose for page scripts
+// expose
 window.MB = MB;
 window.MB.me = async (idToken) => {
   const tok = idToken || localStorage.getItem("id_token");
@@ -340,9 +339,8 @@ window.MB_openLoginModal = (opts) => openLoginModal(opts || { reset: true });
 window.addEventListener("load", boot);
 
 /* =========================
-   Feed Wall (Local Demo)
-   之後接 Apps Script 也可以：只要把 API 改成你的 endpoint
-   ========================= */
+   Feed Wall (Local Demo + Search + Login Gate)
+========================= */
 (function () {
   const LS_KEY = "moviebase_feed_posts_v1";
 
@@ -386,16 +384,44 @@ window.addEventListener("load", boot);
       .slice(0, 8);
   }
 
-  function render() {
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function matchQuery(post, q) {
+    const qq = (q || "").trim();
+    if (!qq) return true;
+
+    const hay = [
+      post.author, post.title, post.content,
+      ...(post.tags || [])
+    ].join(" ").toLowerCase();
+
+    // 若是 #tag，強化用 tags 比對
+    if (qq.startsWith("#")) {
+      const t = qq.toLowerCase();
+      return (post.tags || []).some(x => String(x).toLowerCase() === t) || hay.includes(t);
+    }
+
+    return hay.includes(qq.toLowerCase());
+  }
+
+  function render(q = "") {
     const list = $("feedList");
     const empty = $("feedEmpty");
     if (!list || !empty) return;
 
-    const posts = loadPosts();
+    const posts = loadPosts().filter(p => matchQuery(p, q));
     list.innerHTML = "";
 
     if (!posts.length) {
       empty.style.display = "block";
+      empty.textContent = q ? "找不到符合的貼文（換個 #tag 或關鍵字試試）" : "目前還沒有貼文。先登入後發第一篇吧 🍿";
       return;
     }
     empty.style.display = "none";
@@ -406,14 +432,14 @@ window.addEventListener("load", boot);
       card.innerHTML = `
         <div class="feedTop">
           <div class="feedMeta">
-            <div class="avatar">${initials(p.author)}</div>
+            <div class="avatar">${escapeHtml(initials(p.author))}</div>
             <div class="metaText">
               <div class="name">${escapeHtml(p.author)}</div>
               <div class="time">${escapeHtml(formatTime(p.createdAt))}</div>
             </div>
           </div>
           <div class="badges">
-            <span class="badge">${p.typeLabel}</span>
+            <span class="badge">${escapeHtml(p.typeLabel)}</span>
             <span class="badge">心情 ${"★".repeat(p.mood)}</span>
           </div>
         </div>
@@ -423,7 +449,7 @@ window.addEventListener("load", boot);
 
         ${p.tags?.length ? `
           <div class="feedTags">
-            ${p.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
+            ${p.tags.map(t => `<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`).join("")}
           </div>
         ` : ""}
 
@@ -434,15 +460,16 @@ window.addEventListener("load", boot);
       `;
       list.appendChild(card);
     }
-  }
 
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+    // 點 tag 直接搜尋
+    list.querySelectorAll("[data-tag]").forEach(el => {
+      el.addEventListener("click", () => {
+        const t = el.getAttribute("data-tag");
+        const inp = $("feedSearchInput");
+        if (inp) inp.value = t;
+        render(t);
+      });
+    });
   }
 
   function mountFeed() {
@@ -451,11 +478,24 @@ window.addEventListener("load", boot);
     const details = $("composerDetails");
     const closeBtn = $("btnCloseComposer");
     const form = $("postForm");
+    const searchBtn = $("feedSearchBtn");
+    const searchInput = $("feedSearchInput");
 
-    if (refreshBtn) refreshBtn.addEventListener("click", render);
+    if (refreshBtn) refreshBtn.addEventListener("click", () => render(searchInput?.value || ""));
+
+    if (searchBtn) searchBtn.addEventListener("click", () => render(searchInput?.value || ""));
+    if (searchInput) {
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          render(searchInput.value || "");
+        }
+      });
+    }
 
     if (openBtn && details) {
       openBtn.addEventListener("click", () => {
+        if (window.MB_requireLogin && !window.MB_requireLogin("新增貼文")) return;
         details.open = true;
         details.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
@@ -469,6 +509,8 @@ window.addEventListener("load", boot);
       form.addEventListener("submit", (e) => {
         e.preventDefault();
 
+        if (window.MB_requireLogin && !window.MB_requireLogin("發布貼文")) return;
+
         const fd = new FormData(form);
         const title = (fd.get("title") || "").toString().trim();
         const type = (fd.get("type") || "movie").toString();
@@ -481,8 +523,10 @@ window.addEventListener("load", boot);
           return;
         }
 
-        // 這裡之後可接你登入狀態：author 用你 Google 使用者名稱
-        const author = (document.documentElement.dataset.userName || "MovieBase");
+        const author =
+          (document.documentElement.getAttribute("data-user-name"))
+          || (MB?.state?.user?.name)
+          || "MovieBase";
 
         const typeLabelMap = { movie: "電影", series: "影集", anime: "動畫", other: "其他" };
         const post = {
@@ -503,33 +547,18 @@ window.addEventListener("load", boot);
 
         form.reset();
         if (details) details.open = false;
-        render();
+
+        render(searchInput?.value || "");
       });
     }
 
-    render();
+    // 登入/登出後，自動刷新（讓作者名、權限提示同步）
+    window.addEventListener("mb:auth", () => render(searchInput?.value || ""));
+
+    render("");
   }
 
-  // 讓 hash 切到 #feed/#wall 時也會顯示（若你有用 hash tab）
-  function onHashChange() {
-    const h = (location.hash || "").replace("#", "");
-    if (h === "feed" || h === "wall" || h === "post" || h === "floating") {
-      // 只要有該 panel，就 mount（不會重複綁事件）
-      if (!$("__feed_mounted__")) {
-        const marker = document.createElement("div");
-        marker.id = "__feed_mounted__";
-        marker.style.display = "none";
-        document.body.appendChild(marker);
-        mountFeed();
-      }
-    }
-  }
-
-  window.addEventListener("hashchange", onHashChange);
   window.addEventListener("DOMContentLoaded", () => {
-    // 預設先 mount（安全：抓不到元素就不做事）
-    mountFeed();
-    onHashChange();
+    mountFeed(); // 安全：若頁面沒有 feed 元素，不會做事
   });
 })();
-
