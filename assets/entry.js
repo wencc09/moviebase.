@@ -1,9 +1,9 @@
-// assets/entry.js (v2 stable)
-// - After splash ends OR user clicks: open identity modal (NOT navigate) to avoid flash screen
+// assets/entry.js
 (function () {
   const $ = (s) => document.querySelector(s);
 
   const SPLASH_DURATION_MS = 4200;
+  const TO_MAIN_URL = "app.html#lobby";
 
   function hideSplash() {
     const splash = $("#splash");
@@ -15,27 +15,6 @@
     }, 520);
   }
 
-  function openChooseModal() {
-    // Prefer unified modal function from app.js
-    if (window.MB_openLoginModal) {
-      window.MB_openLoginModal({ reset: true });
-      return;
-    }
-
-    // fallback
-    const m = $("#modal");
-    if (!m) return;
-    $("#chooseBox")?.classList.remove("hidden");
-    $("#googleBox")?.classList.add("hidden");
-    m.classList.add("open");
-    m.setAttribute("aria-hidden", "false");
-  }
-
-  function finishToChoose() {
-    hideSplash();
-    setTimeout(openChooseModal, 260);
-  }
-
   function initSplashFlow() {
     const splash = $("#splash");
     if (!splash) return;
@@ -43,36 +22,42 @@
     let done = false;
     let timer = null;
 
-    const finish = (e) => {
+    const finish = () => {
       if (done) return;
       done = true;
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
       clearTimeout(timer);
-      finishToChoose();
+      hideSplash(); // ✅ 只關 Splash，不跳頁、不開 modal
     };
 
     timer = setTimeout(finish, SPLASH_DURATION_MS);
-
     splash.addEventListener("click", finish);
-    $("#btnSkip")?.addEventListener("click", finish);
+    $("#btnSkip")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      finish();
+    });
 
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") finish(e);
+      if (e.key === "Escape") finish();
     });
   }
 
   function initChooseHandlers() {
-    // Login -> show Google area (do NOT set mode user here!)
+    // Google -> show Google area
     $("#chooseLogin")?.addEventListener("click", () => {
+      // 讓 app.js 登入成功後知道要跳哪
+      localStorage.setItem("mb_after_auth_url", TO_MAIN_URL);
+
       $("#chooseBox")?.classList.add("hidden");
       $("#googleBox")?.classList.remove("hidden");
     });
 
-    // Guest -> enter hall as guest
+    // Guest -> enter as guest (直接進圖四)
     $("#chooseGuest")?.addEventListener("click", () => {
+      localStorage.removeItem("id_token");
       localStorage.setItem("mode", "guest");
-      location.href = "hall.html?mode=guest";
+      localStorage.setItem("mb_after_auth_url", TO_MAIN_URL);
+      location.href = TO_MAIN_URL;
     });
 
     // Back button
