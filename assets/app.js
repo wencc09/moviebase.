@@ -484,21 +484,22 @@ window.addEventListener("load", boot);
 
   // ---- mapping row -> card ----
   function toCard(row) {
-    const tags = splitTags(row.hashtags || "");
-    const content = row.review || row.note || "";
-    const photos = pickPhotoArrayFromRow(row);
-    return {
-      id: row.id,
-      author: row.authorName || "User",
-      title: row.title || "",
-      kind: row.category || "movie",
-      mood: row.rating || 3,
-      content,
-      tags,
-      ts: row.ts || "",
-      photos, // <= NEW
-    };
-  }
+  const tags = splitTags(row.hashtags || "");
+  const content = row.review || row.note || "";
+  return {
+    id: row.id,
+    author: row.authorName || "User",
+    title: row.title || "",
+    kind: row.category || "movie",
+    mood: row.rating || 3,
+    content,
+    tags,
+    ts: row.ts || "",
+    photos: row.photoUrls || [],
+    likeCount: Number(row.likeCount || 0),
+    liked: !!row.liked,
+  };
+}
 
   function match(card, q) {
     const s = (q || "").trim().toLowerCase();
@@ -560,6 +561,12 @@ window.addEventListener("load", boot);
             ${c.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
           </div>
         ` : ""}
+        <div class="feedActions">
+             <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
+                <span class="heartIcon">♥</span>
+                <span class="heartCount">${Number(c.likeCount || 0)}</span>
+        </button>
+      </div>
       </article>
     `).join("");
   }
@@ -580,18 +587,29 @@ window.addEventListener("load", boot);
     }
     const submit = $("btnPostSubmit");
     if (submit) submit.disabled = isGuest;
+
+        // 訪客不能按愛心
+   document.querySelectorAll("#postList .heartBtn").forEach(btn => {
+     btn.disabled = isGuest;
+     btn.title = isGuest ? "登入後才能按愛心" : "按愛心";
+});
+
   }
 
   async function loadCards() {
-    const data = await apiGET({ action: "list_posts" });
-    if (!data.ok) throw new Error(data.error || "list_posts failed");
+  const idToken = localStorage.getItem("id_token");
 
-    const cards = (data.rows || []).map(toCard);
+  const data = idToken
+    ? await apiPOST({ action: "list_posts", idToken })
+    : await apiGET({ action: "list_posts" });
 
-    // ts 已是 ISO 字串的話，後端有排序；這裡再保險
-    cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
-    return cards;
-  }
+  if (!data.ok) throw new Error(data.error || "list_posts failed");
+
+  const cards = (data.rows || []).map(toCard);
+  cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+  return cards;
+}
+
 
   async function createCardFromForm() {
     const title = ($("postTitle")?.value || "").trim();
@@ -629,6 +647,7 @@ window.addEventListener("load", boot);
     const q = $("postSearch")?.value || "";
     const cards = await loadCards();
     render(cards, q);
+   applyRoleLock();
   }
 
   // Mount
@@ -640,6 +659,32 @@ window.addEventListener("load", boot);
       console.error(e);
       toast(`貼文讀取失敗：${String(e.message || e)}`.slice(0, 120));
     }
+
+
+      $("postList")?.addEventListener("click", async (e) => {
+     const btn = e.target.closest(".heartBtn");
+     if (!btn) return;
+   
+     if (!requireLogin("按愛心")) return;
+   
+     const postId = btn.dataset.likeId;
+     btn.disabled = true;
+   
+     try {
+       const idToken = localStorage.getItem("id_token");
+       const data = await apiPOST({ action: "toggle_like", idToken, postId });
+       if (!data.ok) throw new Error(data.error || "toggle_like failed");
+   
+       btn.classList.toggle("is-liked", !!data.liked);
+       btn.querySelector(".heartCount").textContent = String(data.likeCount || 0);
+     } catch (err) {
+       console.error(err);
+       toast(`愛心失敗：${String(err.message || err)}`.slice(0, 120));
+     } finally {
+       // 依照目前登入狀態決定是否能按
+       btn.disabled = (MB.state.mode !== "user");
+     }
+   });
 
     $("btnRefreshPosts")?.addEventListener("click", async () => {
       try { await refresh(); } catch (e) { toast(String(e.message || e)); }
