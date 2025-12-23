@@ -138,19 +138,26 @@
                   <option value="other">其他</option>
                 </select>
               </div>
+
+              <label class="field">
+                <span class="label">照片（最多4張）</span>
+                <input id="postPhotos" type="file" accept="image/*" multiple />
+                <div id="photoHint" class="muted">可選 1～4 張（建議每張 1.5MB 內）</div>
+                <div id="photoPreview" class="photoPreview"></div>
+              </label>
     
               <textarea class="input" id="postContent" rows="3"
-                placeholder="想說什麼？例如：今天看完《進擊的巨人》… #進擊的巨人 #心得"
+                placeholder="想說什麼？"
                 maxlength="500"></textarea>
     
               <div class="row">
-                <input class="input" id="postTags" placeholder="#hashtag（用空白分隔，例如：#進擊的巨人 #咒術迴戰）" />
+                <input class="input" id="postTags" placeholder="#hashtag（用空白分隔）" />
                 <select class="input" id="postMood">
-                  <option value="5">心情 ★★★★★</option>
-                  <option value="4">心情 ★★★★</option>
-                  <option value="3">心情 ★★★</option>
-                  <option value="2">心情 ★★</option>
-                  <option value="1">心情 ★</option>
+                  <option value="5">★★★★★</option>
+                  <option value="4">★★★★</option>
+                  <option value="3">★★★</option>
+                  <option value="2"> ★★</option>
+                  <option value="1"> ★</option>
                 </select>
                 <button class="btn primary" id="btnPostSubmit" type="submit">發佈</button>
               </div>
