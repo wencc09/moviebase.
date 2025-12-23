@@ -626,19 +626,19 @@ body{ margin:0; overflow-x:hidden; }
 
 /* 1 張：更寬＋置中（像電影大螢幕） */
 .feedPhotos[data-count="1"]{
-  --h: 260px;                 /* ✅ 單張可以稍微高一點更像大螢幕 */
+  --h: 280px;                 /* ✅ 單張可以稍微高一點更像大螢幕 */
 }
 .feedPhotos[data-count="1"] .ph{
   flex: 0 0 min(100%, 760px); /* ✅ 單張最大寬度（想再寬就調 760） */
 }
 
 /* 2/3/4 張：高度固定，寬度平均（看起來同一排同高度） */
-.feedPhotos[data-count="2"]{ --h: 230px; }
+.feedPhotos[data-count="2"]{ --h: 220px; }
 .feedPhotos[data-count="3"]{ --h: 210px; }
 .feedPhotos[data-count="4"]{ --h: 200px; }
 
 /* 小螢幕避免太窄：允許橫向滑動，但仍是一排 */
-@media (max-width: 760px){
+@media (max-width: 680px){
   .feedPhotos{
     overflow-x: auto;
     padding-bottom: 4px;
