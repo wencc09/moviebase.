@@ -309,6 +309,31 @@
         acc.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才會有：我的貼文 / 已按讚收藏`;
       }
     });
+
+        //<!-- Comment Modal -->//
+    <div id="commentModal" class="mbModal" aria-hidden="true">
+      <div class="mbModalBackdrop" data-close="1"></div>
+    
+      <div class="mbModalCard" role="dialog" aria-modal="true">
+        <div class="mbModalHead">
+          <div class="mbModalTitle" id="commentModalTitle">留言</div>
+          <button class="mbModalClose" id="commentModalClose" type="button">✕</button>
+        </div>
+    
+        <div id="commentList" class="commentList">
+          <!-- comments render here -->
+        </div>
+    
+        <div class="commentComposer">
+          <div id="commentHint" class="muted"></div>
+          <form id="commentForm" class="commentForm">
+            <input id="commentInput" type="text" placeholder="寫下留言…" maxlength="500" />
+            <button id="commentSend" type="submit">送出</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
   </script>
 </body>
 </html>
