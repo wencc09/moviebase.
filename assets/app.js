@@ -9,6 +9,8 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com",
 };
 
+const imgs = (p.photoUrls && p.photoUrls.length) ? p.photoUrls : (p.photoUrl ? [p.photoUrl] : []);
+
 const MB = {
   state: {
     mode: "unknown", // "unknown" | "guest" | "user"
