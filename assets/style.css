@@ -638,7 +638,7 @@ body{ margin:0; overflow-x:hidden; }
 .feedPhotos[data-count="4"]{ --h: 200px; }
 
 /* 小螢幕避免太窄：允許橫向滑動，但仍是一排 */
-@media (max-width: 680px){
+@media (max-width: 760px){
   .feedPhotos{
     overflow-x: auto;
     padding-bottom: 4px;
