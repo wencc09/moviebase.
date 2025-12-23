@@ -939,3 +939,31 @@ html::before{
   .feedPhotos{ max-width: 420px; }
 }
 
+/* 外層容器若有限寬，強制放大（Chrome/Edge 可用） */
+body:has(#postList) .container,
+body:has(#postList) .wrap,
+body:has(#postList) .page,
+body:has(#postList) .main{
+  max-width: 1400px;
+  width: min(1400px, 96vw);
+}
+/* ===== 漂浮影廳：整體版面變寬（新增貼文區 + 貼文清單）===== */
+#postForm,
+#postList{
+  width: min(1180px, 94vw);   /* 1180 可改 1100~1400，越大越寬 */
+  margin-left: auto;
+  margin-right: auto;        /* ✅ 置中 */
+}
+
+/* 讓卡片吃滿寬度（避免卡片自己又被限制） */
+#postList .feedCard{
+  width: 100%;
+}
+
+/* 手機保護：別貼邊 */
+@media (max-width: 640px){
+  #postForm,
+  #postList{
+    width: 94vw;
+  }
+}
