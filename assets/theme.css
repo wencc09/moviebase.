@@ -889,3 +889,22 @@ html::before{
 }
 #commentSend:disabled{ opacity:.5; cursor:not-allowed; }
 
+/* ✅ 防止關閉狀態的 modal/backdrop 仍然吃點擊 */
+.mbModal,
+.modal {
+  pointer-events: none;
+  display: none;
+}
+
+.mbModal.is-open,
+.modal.is-open,
+.modal.open {
+  pointer-events: auto;
+  display: block;
+}
+
+.mbModalBackdrop {
+  pointer-events: auto;
+}
+
+
