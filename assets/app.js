@@ -501,25 +501,26 @@ window.addEventListener("load", boot);
   }
 
   // ---- mapping row -> card ----
-  function toCard(row) {
-  const tags = splitTags(row.hashtags || "");
-  const content = row.review || row.note || "";
-   commentCount: Number(row.commentCount || 0),
+    function toCard(row) {
+    const tags = splitTags(row.hashtags || "");
+    const content = row.review || row.note || "";
 
-  return {
-    id: row.id,
-    author: row.authorName || "User",
-    title: row.title || "",
-    kind: row.category || "movie",
-    mood: row.rating || 3,
-    content,
-    tags,
-    ts: row.ts || "",
-    photos: row.photoUrls || [],
-    likeCount: Number(row.likeCount || 0),
-    liked: !!row.liked,
-  };
-}
+    return {
+      id: row.id,
+      author: row.authorName || "User",
+      title: row.title || "",
+      kind: row.category || "movie",
+      mood: row.rating || 3,
+      content,
+      tags,
+      ts: row.ts || "",
+      photos: row.photoUrls || [],
+      likeCount: Number(row.likeCount || 0),
+      liked: !!row.liked,
+      commentCount: Number(row.commentCount || 0),
+    };
+  }
+
 
   function match(card, q) {
     const s = (q || "").trim().toLowerCase();
@@ -536,7 +537,7 @@ window.addEventListener("load", boot);
     return hay.includes(s);
   }
 
-  function render(list, q) {
+   function render(list, q) {
     const wrap = $("postList");
     if (!wrap) return;
 
@@ -581,20 +582,22 @@ window.addEventListener("load", boot);
             ${c.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
           </div>
         ` : ""}
-          <div class="feedActions">
-             <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
-               <span class="heartIcon">♥</span>
-               <span class="heartCount">${Number(c.likeCount || 0)}</span>
-              </button>
 
-             <button class="commentBtn" data-comment-id="${escapeHtml(c.id)}" data-comment-title="${escapeHtml(c.title || "")}" type="button">
-               <span class="commentIcon">💬</span>
-               <span class="commentCount">${Number(c.commentCount || 0)}</span>
-             </button>
-           </div>
+        <div class="feedActions">
+          <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
+            <span class="heartIcon">♥</span>
+            <span class="heartCount">${Number(c.likeCount || 0)}</span>
+          </button>
+
+          <button class="commentBtn" data-comment-id="${escapeHtml(c.id)}" data-comment-title="${escapeHtml(c.title || "")}" type="button">
+            <span class="commentIcon">💬</span>
+            <span class="commentCount">${Number(c.commentCount || 0)}</span>
+          </button>
+        </div>
       </article>
     `).join("");
   }
+
 
   function applyRoleLock() {
     const isGuest = MB.state.mode !== "user";
