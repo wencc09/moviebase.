@@ -486,6 +486,8 @@ window.addEventListener("load", boot);
   function toCard(row) {
   const tags = splitTags(row.hashtags || "");
   const content = row.review || row.note || "";
+   commentCount: Number(row.commentCount || 0),
+
   return {
     id: row.id,
     author: row.authorName || "User",
@@ -566,7 +568,18 @@ window.addEventListener("load", boot);
                 <span class="heartIcon">♥</span>
                 <span class="heartCount">${Number(c.likeCount || 0)}</span>
         </button>
-      </div>
+
+        <div class="feedActions">
+           <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
+             <span class="heartIcon">♥</span>
+             <span class="heartCount">${Number(c.likeCount || 0)}</span>
+           </button>
+         
+           <button class="commentBtn" data-comment-id="${escapeHtml(c.id)}" data-comment-title="${escapeHtml(c.title || "")}" type="button">
+             <span class="commentIcon">💬</span>
+             <span class="commentCount">${Number(c.commentCount || 0)}</span>
+           </button>
+       </div>
       </article>
     `).join("");
   }
