@@ -58,8 +58,13 @@ async function apiPOST(payload) {
 async function apiGET(params) {
   const u = new URL(CONFIG.GAS_WEBAPP_URL);
   Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
-  return apiFetch_(u.toString(), { method: "GET" });
+
+  // ✅ 防止瀏覽器/中間層快取 GET
+  u.searchParams.set("_", String(Date.now()));
+
+  return apiFetch_(u.toString(), { method: "GET", cache: "no-store" });
 }
+
 
 async function verifyMe() {
   const idToken = localStorage.getItem("id_token");
@@ -1018,19 +1023,45 @@ window.addEventListener("load", boot);
         if (send) send.disabled = true;
       
         try {
-          const data = await apiPOST({ action: "add_comment", idToken, postId: currentCommentPostId, content: text });
-          if (!data.ok) throw new Error(data.error || "add_comment failed");
-      
-          if (input) input.value = "";
-          await refreshComments();
-      
-          // ✅ 更新卡片上的留言數（提醒：這是前端+1，之後 refresh 也會對齊）
-          if (currentCommentBtn) {
-            const el = currentCommentBtn.querySelector(".commentCount");
-            if (el) el.textContent = String(Number(el.textContent || "0") + 1);
-          }
-      
-          toast("✅ 已留言");
+         const data = await apiPOST({ action: "add_comment", idToken, postId: currentCommentPostId, content: text });
+         if (!data.ok) throw new Error(data.error || "add_comment failed");
+         
+         // ✅ 1) 立刻把剛剛的留言插入畫面（不等 list_comments）
+         const postId = String(currentCommentPostId);
+         const meName =
+           (MB.state.user && (MB.state.user.name || MB.state.user.email)) ||
+           document.documentElement.getAttribute("data-user-name") ||
+           "User";
+         
+         const newRow = {
+           authorName: meName,
+           ts: data.ts || new Date().toISOString(),
+           content: text
+         };
+         
+         // 取出快取，最前面插入一筆
+         const cached = COMMENT_CACHE.get(postId);
+         const rows = [newRow, ...(cached?.rows || [])];
+         COMMENT_CACHE.set(postId, { at: Date.now(), rows });
+         
+         // 立刻渲染
+         renderComments(rows);
+         
+         // ✅ 2) 清輸入框
+         if (input) input.value = "";
+         
+         // ✅ 3) 強制抓一次最新（避免多人同時留言不同步）
+         COMMENT_CACHE.set(postId, { at: 0, rows });          // 讓它不會被 TTL 短路
+         await refreshComments({ force: true });
+         
+         // ✅ 更新卡片上的留言數（你原本有就保留）
+         if (currentCommentBtn) {
+           const el = currentCommentBtn.querySelector(".commentCount");
+           if (el) el.textContent = String(Number(el.textContent || "0") + 1);
+         }
+         
+         toast("✅ 已留言");
+
         } catch (err) {
           console.error(err);
           toast(`留言失敗：${String(err.message || err)}`.slice(0, 140));
