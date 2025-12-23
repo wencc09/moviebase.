@@ -629,8 +629,9 @@ body{ margin:0; overflow-x:hidden; }
   --h: 280px;                 /* ✅ 單張可以稍微高一點更像大螢幕 */
 }
 .feedPhotos[data-count="1"] .ph{
-  flex: 0 0 min(100%, 760px); /* ✅ 單張最大寬度（想再寬就調 760） */
-}
+  flex: 0 0 100%;
+}    /* ✅ 單張最大寬度（想再寬就調 760） */
+
 
 /* 2/3/4 張：高度固定，寬度平均（看起來同一排同高度） */
 .feedPhotos[data-count="2"]{ --h: 220px; }
