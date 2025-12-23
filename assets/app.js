@@ -59,11 +59,12 @@ async function apiGET(params) {
   const u = new URL(CONFIG.GAS_WEBAPP_URL);
   Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
 
-  // ✅ 防止瀏覽器/中間層快取 GET
+  // ✅ 防止瀏覽器/中間層快取 GET（尤其 list_comments/list_posts）
   u.searchParams.set("_", String(Date.now()));
 
   return apiFetch_(u.toString(), { method: "GET", cache: "no-store" });
 }
+
 
 
 async function verifyMe() {
@@ -966,33 +967,26 @@ window.addEventListener("load", boot);
       async function refreshComments(opts = {}) {
         if (!currentCommentPostId) return;
       
-        const reqId = ++currentCommentReq;
-        const postId = currentCommentPostId;
         const force = !!opts.force;
+        const postId = String(currentCommentPostId);
       
-        // 如果快取很新鮮且不強制更新，就不打後端
         const cached = COMMENT_CACHE.get(postId);
         if (!force && cached && (Date.now() - cached.at < CACHE_TTL_MS)) return;
       
-        try {
-          // ✅ 只要最新 50 則（後端也會配合做 limit）
-          const data = await apiGET({ action: "list_comments", postId, limit: "50" });
+        const data = await apiGET({ action: "list_comments", postId, limit: "50" });
+        if (!data.ok) throw new Error(data.error || "list_comments failed");
       
-          if (reqId !== currentCommentReq) return;
-          if (postId !== currentCommentPostId) return;
-      
-          if (!data.ok) throw new Error(data.error || "list_comments failed");
-      
-          const rows = data.rows || [];
-          COMMENT_CACHE.set(postId, { at: Date.now(), rows });   // ✅ 更新快取
-          renderComments(rows);
-        } catch (e) {
-          if (reqId !== currentCommentReq) return;
-          const wrap = document.getElementById("commentList");
-          if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
-          console.error(e);
-        }
+        COMMENT_CACHE.set(postId, { at: Date.now(), rows: data.rows || [] });
+        renderComments(data.rows || []);
       }
+      
+              } catch (e) {
+                if (reqId !== currentCommentReq) return;
+                const wrap = document.getElementById("commentList");
+                if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
+                console.error(e);
+              }
+            }
 
       
       // 1) 點 💬 開彈窗
@@ -1018,57 +1012,68 @@ window.addEventListener("load", boot);
         const text = (input?.value || "").trim();
         if (!text) return toast("留言不能空白喔！");
       
-        const idToken = localStorage.getItem("id_token");
         const send = document.getElementById("commentSend");
         if (send) send.disabled = true;
       
+        const postId = String(currentCommentPostId || "");
+        const idToken = localStorage.getItem("id_token");
+      
+        // ✅ 先準備「我自己的名字」
+        const myName =
+          (MB.state.user && (MB.state.user.name || MB.state.user.email)) ||
+          document.documentElement.getAttribute("data-user-name") ||
+          "User";
+      
+        // ✅ 1) 先立刻插入一筆到畫面（不用等後端）
+        const optimisticRow = {
+          authorName: myName,
+          ts: new Date().toISOString(),
+          content: text
+        };
+      
+        // 更新快取並立刻渲染
+        const cached = COMMENT_CACHE.get(postId);
+        const rowsNow = [optimisticRow, ...(cached?.rows || [])].slice(0, 50);
+        COMMENT_CACHE.set(postId, { at: Date.now(), rows: rowsNow });
+        renderComments(rowsNow);
+      
+        // 清空輸入框（體感更好）
+        if (input) input.value = "";
+      
         try {
-         const data = await apiPOST({ action: "add_comment", idToken, postId: currentCommentPostId, content: text });
-         if (!data.ok) throw new Error(data.error || "add_comment failed");
-         
-         // ✅ 1) 立刻把剛剛的留言插入畫面（不等 list_comments）
-         const postId = String(currentCommentPostId);
-         const meName =
-           (MB.state.user && (MB.state.user.name || MB.state.user.email)) ||
-           document.documentElement.getAttribute("data-user-name") ||
-           "User";
-         
-         const newRow = {
-           authorName: meName,
-           ts: data.ts || new Date().toISOString(),
-           content: text
-         };
-         
-         // 取出快取，最前面插入一筆
-         const cached = COMMENT_CACHE.get(postId);
-         const rows = [newRow, ...(cached?.rows || [])];
-         COMMENT_CACHE.set(postId, { at: Date.now(), rows });
-         
-         // 立刻渲染
-         renderComments(rows);
-         
-         // ✅ 2) 清輸入框
-         if (input) input.value = "";
-         
-         // ✅ 3) 強制抓一次最新（避免多人同時留言不同步）
-         COMMENT_CACHE.set(postId, { at: 0, rows });          // 讓它不會被 TTL 短路
-         await refreshComments({ force: true });
-         
-         // ✅ 更新卡片上的留言數（你原本有就保留）
-         if (currentCommentBtn) {
-           const el = currentCommentBtn.querySelector(".commentCount");
-           if (el) el.textContent = String(Number(el.textContent || "0") + 1);
-         }
-         
-         toast("✅ 已留言");
-
+          // ✅ 2) 再送到後端真的寫入
+          const data = await apiPOST({ action: "add_comment", idToken, postId, content: text });
+          if (!data.ok) throw new Error(data.error || "add_comment failed");
+      
+          // ✅ 更新卡片上的留言數（你原本有就保留）
+          if (currentCommentBtn) {
+            const el = currentCommentBtn.querySelector(".commentCount");
+            if (el) el.textContent = String(Number(el.textContent || "0") + 1);
+          }
+      
+          toast("✅ 已留言");
+      
+          // ✅ 3) 背景強制同步一次（避免多人留言或排序不同步）
+          //    這裡用 delete 確保不會被 TTL 短路
+          COMMENT_CACHE.delete(postId);
+          await refreshComments({ force: true });
+      
         } catch (err) {
           console.error(err);
           toast(`留言失敗：${String(err.message || err)}`.slice(0, 140));
+      
+          // 失敗回滾：把剛剛 optimistic 的那筆拿掉
+          const cur = COMMENT_CACHE.get(postId);
+          if (cur?.rows?.length) {
+            const reverted = cur.rows.filter(r => !(r.ts === optimisticRow.ts && r.content === optimisticRow.content));
+            COMMENT_CACHE.set(postId, { at: Date.now(), rows: reverted });
+            renderComments(reverted);
+          }
         } finally {
           applyCommentRoleLock();
         }
       });
+
       
       // 4) 登入狀態改變時，更新留言框可用性
       window.addEventListener("mb:auth", () => {
