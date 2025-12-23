@@ -482,6 +482,24 @@ window.addEventListener("load", boot);
     `).join("");
   }
 
+     // ---- perf helpers ----//
+  const debounce = (fn, ms = 250) => {
+    let t = 0;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  };
+
+  // 預熱後端（減少第一次操作 3~8 秒）
+  function warmupBackend() {
+    // GET ping
+    apiGET({ action: "ping" }).catch(() => {});
+    // 若登入也順便 POST ping
+    const idToken = localStorage.getItem("id_token");
+    if (idToken) apiPOST({ action: "ping", idToken }).catch(() => {});
+  }
+
   // ---- mapping row -> card ----
   function toCard(row) {
   const tags = splitTags(row.hashtags || "");
@@ -563,21 +581,17 @@ window.addEventListener("load", boot);
             ${c.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
           </div>
         ` : ""}
-        <div class="feedActions">
+          <div class="feedActions">
              <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
-                <span class="heartIcon">♥</span>
-                <span class="heartCount">${Number(c.likeCount || 0)}</span>
-        </button>
+               <span class="heartIcon">♥</span>
+               <span class="heartCount">${Number(c.likeCount || 0)}</span>
+              </button>
 
-        <div class="feedActions">
-           <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
-             <span class="heartIcon">♥</span>
-             <span class="heartCount">${Number(c.likeCount || 0)}</span>
-           <button class="commentBtn" data-comment-id="${escapeHtml(c.id)}" data-comment-title="${escapeHtml(c.title || "")}" type="button">
-             <span class="commentIcon">💬</span>
-             <span class="commentCount">${Number(c.commentCount || 0)}</span>
-           </button>
-       </div>
+             <button class="commentBtn" data-comment-id="${escapeHtml(c.id)}" data-comment-title="${escapeHtml(c.title || "")}" type="button">
+               <span class="commentIcon">💬</span>
+               <span class="commentCount">${Number(c.commentCount || 0)}</span>
+             </button>
+           </div>
       </article>
     `).join("");
   }
@@ -654,18 +668,29 @@ window.addEventListener("load", boot);
     return data.id;
   }
 
-  async function refresh() {
+  let __cardsCache = [];
+  let __loadedOnce = false;
+
+  async function refresh(opts = { force: false }) {
     const q = $("postSearch")?.value || "";
-    const cards = await loadCards();
-    render(cards, q);
-   applyRoleLock();
+
+    // 沒 force 就不要一直打後端
+    if (!__loadedOnce || opts.force) {
+      __cardsCache = await loadCards();
+      __loadedOnce = true;
+    }
+
+    render(__cardsCache, q);
+    applyRoleLock();
   }
+
 
   // Mount
   window.addEventListener("load", async () => {
+    warmupBackend();
     try {
       applyRoleLock();
-      await refresh();
+      await refresh({ force: true });
     } catch (e) {
       console.error(e);
       toast(`貼文讀取失敗：${String(e.message || e)}`.slice(0, 120));
@@ -673,37 +698,68 @@ window.addEventListener("load", boot);
 
 
       $("postList")?.addEventListener("click", async (e) => {
-     const btn = e.target.closest(".heartBtn");
-     if (!btn) return;
-   
-     if (!requireLogin("按愛心")) return;
-   
-     const postId = btn.dataset.likeId;
-     btn.disabled = true;
-   
-     try {
-       const idToken = localStorage.getItem("id_token");
-       const data = await apiPOST({ action: "toggle_like", idToken, postId });
-       if (!data.ok) throw new Error(data.error || "toggle_like failed");
-   
-       btn.classList.toggle("is-liked", !!data.liked);
-       btn.querySelector(".heartCount").textContent = String(data.likeCount || 0);
-     } catch (err) {
-       console.error(err);
-       toast(`愛心失敗：${String(err.message || err)}`.slice(0, 120));
-     } finally {
-       // 依照目前登入狀態決定是否能按
-       btn.disabled = (MB.state.mode !== "user");
-     }
-   });
+      const btn = e.target.closest(".heartBtn");
+      if (!btn) return;
+      if (!requireLogin("按愛心")) return;
+
+      const postId = btn.dataset.likeId;
+      const countEl = btn.querySelector(".heartCount");
+
+      // optimistic UI
+      const wasLiked = btn.classList.contains("is-liked");
+      const oldCount = Number(countEl?.textContent || "0");
+      const newLiked = !wasLiked;
+      const newCount = oldCount + (newLiked ? 1 : -1);
+
+      btn.classList.toggle("is-liked", newLiked);
+      if (countEl) countEl.textContent = String(Math.max(0, newCount));
+      btn.disabled = true;
+
+      // 同步更新 cache（讓搜尋/重繪也一致）
+      const hit = __cardsCache.find(x => String(x.id) === String(postId));
+      if (hit) {
+        hit.liked = newLiked;
+        hit.likeCount = Math.max(0, newCount);
+      }
+
+      try {
+        const idToken = localStorage.getItem("id_token");
+        const data = await apiPOST({ action: "toggle_like", idToken, postId });
+        if (!data.ok) throw new Error(data.error || "toggle_like failed");
+
+        // 以後端為準（避免不同步）
+        btn.classList.toggle("is-liked", !!data.liked);
+        if (countEl) countEl.textContent = String(data.likeCount || 0);
+        if (hit) {
+          hit.liked = !!data.liked;
+          hit.likeCount = Number(data.likeCount || 0);
+        }
+      } catch (err) {
+        // 回滾
+        btn.classList.toggle("is-liked", wasLiked);
+        if (countEl) countEl.textContent = String(oldCount);
+        if (hit) {
+          hit.liked = wasLiked;
+          hit.likeCount = oldCount;
+        }
+        console.error(err);
+        toast(`愛心失敗：${String(err.message || err)}`.slice(0, 120));
+      } finally {
+        btn.disabled = (MB.state.mode !== "user");
+      }
+    });
+
 
     $("btnRefreshPosts")?.addEventListener("click", async () => {
       try { await refresh(); } catch (e) { toast(String(e.message || e)); }
     });
 
-    $("postSearch")?.addEventListener("input", async () => {
-      try { await refresh(); } catch (_) {}
-    });
+      $("postSearch")?.addEventListener("input", debounce(() => {
+      const q = $("postSearch")?.value || "";
+      render(__cardsCache, q);
+      applyRoleLock();
+    }, 180));
+
 
     // ✅ NEW：選圖預覽 + 限制最多 4 張
     $("postPhotos")?.addEventListener("change", async () => {
@@ -718,27 +774,98 @@ window.addEventListener("load", boot);
       }
     });
 
-    $("postForm")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!requireLogin("發布貼文")) return;
+      $("postForm")?.addEventListener("submit", async (e) => {
+         e.preventDefault();
+         if (!requireLogin("發布貼文")) return;
+   
+         const submitBtn = $("btnPostSubmit");
+         if (submitBtn) submitBtn.disabled = true;
+   
+         // 先做一張 pending 卡（立刻出現）
+         const pendingId = "pending_" + Date.now();
+         const author = MB.state.user?.name || MB.state.user?.email || "User";
+         const tsNow = new Date().toISOString();
+   
+         const title = ($("postTitle")?.value || "").trim();
+         const kind = ($("postKind")?.value || "movie").trim();
+         const content = ($("postContent")?.value || "").trim();
+         const tags = ($("postTags")?.value || "").trim();
+         const mood = Number($("postMood")?.value || 3);
+   
+         if (!content) {
+           toast("內容不能空白喔！");
+           if (submitBtn) submitBtn.disabled = (MB.state.mode !== "user");
+           return;
+         }
+   
+         // 先讀圖片（你原本就會讀，所以這步不可省，但 UI 不再等後端才更新）
+         let photoDataUrls = [];
+         try {
+           photoDataUrls = await readPhotosFromInput();
+         } catch (_) {}
+   
+         const pendingCard = {
+           id: pendingId,
+           author,
+           title,
+           kind,
+           mood,
+           content: "（發佈中…）\n" + content,
+           tags: splitTags(tags),
+           ts: tsNow,
+           photos: photoDataUrls,      // 預覽用 base64（成功後會 refresh 換成 drive URL）
+           likeCount: 0,
+           liked: false,
+           commentCount: 0,
+         };
+   
+         __cardsCache.unshift(pendingCard);
+         render(__cardsCache, $("postSearch")?.value || "");
+         applyRoleLock();
+   
+         try {
+           // ✅ 用你的 createCardFromForm 送出（它會呼叫後端 create_post）
+           await (async () => {
+             const idToken = localStorage.getItem("id_token");
+             const payload = {
+               action: "create_post",
+               idToken,
+               title,
+               category: kind,
+               rating: Math.min(5, Math.max(1, mood)),
+               review: content,
+               hashtags: tags,
+               photos: photoDataUrls,
+             };
+             const data = await apiPOST(payload);
+             if (!data.ok) throw new Error(data.error || "create_post failed");
+             return data.id;
+           })();
+   
+           // reset form
+           if ($("postTitle")) $("postTitle").value = "";
+           if ($("postContent")) $("postContent").value = "";
+           if ($("postTags")) $("postTags").value = "";
+           if ($("postPhotos")) $("postPhotos").value = "";
+           renderPhotoPreview([]);
+   
+           toast("✅ 已發布（同步中…）");
+   
+           // 後端完成後強制刷新一次，把 pending 換成正式（含 Drive URL、時間等）
+           await refresh({ force: true });
+         } catch (err) {
+           console.error(err);
+           // 發佈失敗：把 pending 卡移除
+           __cardsCache = __cardsCache.filter(x => x.id !== pendingId);
+           render(__cardsCache, $("postSearch")?.value || "");
+           applyRoleLock();
+   
+           toast(`發布失敗：${String(err.message || err)}`.slice(0, 140));
+         } finally {
+           if (submitBtn) submitBtn.disabled = (MB.state.mode !== "user");
+         }
+       });
 
-      try {
-        await createCardFromForm();
-
-        // reset
-        if ($("postTitle")) $("postTitle").value = "";
-        if ($("postContent")) $("postContent").value = "";
-        if ($("postTags")) $("postTags").value = "";
-        if ($("postPhotos")) $("postPhotos").value = "";
-        renderPhotoPreview([]);
-
-        toast("✅ 已發布（已寫入試算表）");
-        await refresh();
-      } catch (err) {
-        console.error(err);
-        toast(`發布失敗：${String(err.message || err)}`.slice(0, 140));
-      }
-    });
 
       
       let currentCommentPostId = "";
