@@ -874,27 +874,47 @@ window.addEventListener("load", boot);
       
       let currentCommentPostId = "";
       let currentCommentBtn = null;
-      let currentCommentReq = 0; // ✅ 用來避免 A/B 競速覆蓋
+      
+      let currentCommentReq = 0;                 // ✅ 防 A/B 競速覆蓋
+      const COMMENT_CACHE = new Map();           // ✅ { postId -> {at:number, rows:Array} }
+      const CACHE_TTL_MS = 30 * 1000;            // ✅ 30 秒內視為新鮮（可調）
+
       
       function openCommentModal(postId, title, btnEl) {
         const m = document.getElementById("commentModal");
         if (!m) return;
       
-        currentCommentPostId = postId;
+        currentCommentPostId = String(postId || "");
         currentCommentBtn = btnEl || null;
       
         const t = document.getElementById("commentModalTitle");
         if (t) t.textContent = title ? `留言｜${title}` : "留言";
       
-        // ✅ 先清空，避免殘留上一則貼文的留言
-        const wrap = document.getElementById("commentList");
-        if (wrap) wrap.innerHTML = `<div class="muted">載入留言中…</div>`;
-      
+        // ✅ 1) 先立即開窗（不要等後端）
         m.classList.add("is-open");
         m.setAttribute("aria-hidden", "false");
       
         applyCommentRoleLock();
-        refreshComments(); // 這裡會用新版 refreshComments 防競速
+      
+        // ✅ 2) 先畫出「快取」或「載入中」
+        const wrap = document.getElementById("commentList");
+        const cached = COMMENT_CACHE.get(currentCommentPostId);
+        const fresh = cached && (Date.now() - cached.at < CACHE_TTL_MS);
+      
+        if (cached?.rows?.length) {
+          renderComments(cached.rows);                 // ✅ 秒顯示（就算不是最新）
+          if (!fresh && wrap) {
+            // 非新鮮：在最上面提示一下（可選）
+            // wrap.insertAdjacentHTML("afterbegin", `<div class="muted">更新中…</div>`);
+          }
+        } else {
+          if (wrap) wrap.innerHTML = `<div class="muted">載入留言中…</div>`;
+        }
+      
+        // ✅ 3) 下一個 frame 再去抓最新（讓 UI 一定先渲染出來）
+        requestAnimationFrame(() => {
+          refreshComments({ force: !fresh });
+        });
       }
 
       
@@ -938,23 +958,30 @@ window.addEventListener("load", boot);
         `).join("");
       }
       
-      async function refreshComments() {
+      async function refreshComments(opts = {}) {
         if (!currentCommentPostId) return;
       
-        const reqId = ++currentCommentReq;      // ✅ 產生這次請求的編號
-        const postId = currentCommentPostId;     // ✅ 把當下 postId 固定住
+        const reqId = ++currentCommentReq;
+        const postId = currentCommentPostId;
+        const force = !!opts.force;
+      
+        // 如果快取很新鮮且不強制更新，就不打後端
+        const cached = COMMENT_CACHE.get(postId);
+        if (!force && cached && (Date.now() - cached.at < CACHE_TTL_MS)) return;
       
         try {
-          const data = await apiGET({ action: "list_comments", postId });
+          // ✅ 只要最新 50 則（後端也會配合做 limit）
+          const data = await apiGET({ action: "list_comments", postId, limit: "50" });
       
-          // ✅ 如果使用者已經切到別篇貼文（reqId 不是最新），就不要渲染
           if (reqId !== currentCommentReq) return;
           if (postId !== currentCommentPostId) return;
       
           if (!data.ok) throw new Error(data.error || "list_comments failed");
-          renderComments(data.rows || []);
+      
+          const rows = data.rows || [];
+          COMMENT_CACHE.set(postId, { at: Date.now(), rows });   // ✅ 更新快取
+          renderComments(rows);
         } catch (e) {
-          // ✅ 同樣要檢查是否已切換貼文
           if (reqId !== currentCommentReq) return;
           const wrap = document.getElementById("commentList");
           if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
