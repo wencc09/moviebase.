@@ -573,8 +573,6 @@ window.addEventListener("load", boot);
            <button class="heartBtn ${c.liked ? "is-liked" : ""}" data-like-id="${escapeHtml(c.id)}" type="button">
              <span class="heartIcon">♥</span>
              <span class="heartCount">${Number(c.likeCount || 0)}</span>
-           </button>
-         
            <button class="commentBtn" data-comment-id="${escapeHtml(c.id)}" data-comment-title="${escapeHtml(c.title || "")}" type="button">
              <span class="commentIcon">💬</span>
              <span class="commentCount">${Number(c.commentCount || 0)}</span>
@@ -741,6 +739,128 @@ window.addEventListener("load", boot);
         toast(`發布失敗：${String(err.message || err)}`.slice(0, 140));
       }
     });
+
+      
+      let currentCommentPostId = "";
+      let currentCommentBtn = null;
+      
+      function openCommentModal(postId, title, btnEl) {
+        const m = document.getElementById("commentModal");
+        if (!m) return;
+      
+        currentCommentPostId = postId;
+        currentCommentBtn = btnEl || null;
+      
+        const t = document.getElementById("commentModalTitle");
+        if (t) t.textContent = title ? `留言｜${title}` : "留言";
+      
+        m.classList.add("is-open");
+        m.setAttribute("aria-hidden", "false");
+      
+        refreshComments();
+        applyCommentRoleLock();
+      }
+      
+      function closeCommentModal() {
+        const m = document.getElementById("commentModal");
+        if (!m) return;
+        m.classList.remove("is-open");
+        m.setAttribute("aria-hidden", "true");
+        currentCommentPostId = "";
+        currentCommentBtn = null;
+      }
+      
+      function applyCommentRoleLock() {
+        const isGuest = MB.state.mode !== "user";
+        const hint = document.getElementById("commentHint");
+        const input = document.getElementById("commentInput");
+        const send = document.getElementById("commentSend");
+      
+        if (hint) hint.textContent = isGuest ? "（登入後才能留言）" : "（已登入，可留言）";
+        if (input) input.disabled = isGuest;
+        if (send) send.disabled = isGuest;
+      }
+      
+      function renderComments(list) {
+        const wrap = document.getElementById("commentList");
+        if (!wrap) return;
+      
+        if (!list || !list.length) {
+          wrap.innerHTML = `<div class="muted">目前還沒有留言</div>`;
+          return;
+        }
+      
+        wrap.innerHTML = list.map(c => `
+          <div class="commentItem">
+            <div class="commentMeta">
+              <span class="commentName">${escapeHtml(c.authorName || "User")}</span>
+              <span class="commentTime">${escapeHtml(c.ts || "")}</span>
+            </div>
+            <div class="commentText">${escapeHtml(c.content || "")}</div>
+          </div>
+        `).join("");
+      }
+      
+      async function refreshComments() {
+        if (!currentCommentPostId) return;
+        const data = await apiGET({ action: "list_comments", postId: currentCommentPostId });
+        if (!data.ok) throw new Error(data.error || "list_comments failed");
+        renderComments(data.rows || []);
+      }
+      
+      // 1) 點 💬 開彈窗
+      document.getElementById("postList")?.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".commentBtn");
+        if (!btn) return;
+      
+        const postId = btn.dataset.commentId;
+        const title = btn.dataset.commentTitle || "";
+        openCommentModal(postId, title, btn);
+      });
+      
+      // 2) Modal 關閉
+      document.getElementById("commentModalClose")?.addEventListener("click", closeCommentModal);
+      document.querySelector("#commentModal .mbModalBackdrop")?.addEventListener("click", closeCommentModal);
+      
+      // 3) 送出留言（只有登入可）
+      document.getElementById("commentForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!requireLogin("留言")) return;
+      
+        const input = document.getElementById("commentInput");
+        const text = (input?.value || "").trim();
+        if (!text) return toast("留言不能空白喔！");
+      
+        const idToken = localStorage.getItem("id_token");
+        const send = document.getElementById("commentSend");
+        if (send) send.disabled = true;
+      
+        try {
+          const data = await apiPOST({ action: "add_comment", idToken, postId: currentCommentPostId, content: text });
+          if (!data.ok) throw new Error(data.error || "add_comment failed");
+      
+          if (input) input.value = "";
+          await refreshComments();
+      
+          // ✅ 更新卡片上的留言數（提醒：這是前端+1，之後 refresh 也會對齊）
+          if (currentCommentBtn) {
+            const el = currentCommentBtn.querySelector(".commentCount");
+            if (el) el.textContent = String(Number(el.textContent || "0") + 1);
+          }
+      
+          toast("✅ 已留言");
+        } catch (err) {
+          console.error(err);
+          toast(`留言失敗：${String(err.message || err)}`.slice(0, 140));
+        } finally {
+          applyCommentRoleLock();
+        }
+      });
+      
+      // 4) 登入狀態改變時，更新留言框可用性
+      window.addEventListener("mb:auth", () => {
+        applyCommentRoleLock();
+      });
 
     window.addEventListener("mb:auth", async () => {
       applyRoleLock();
