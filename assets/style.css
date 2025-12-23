@@ -583,39 +583,41 @@ body{ margin:0; overflow-x:hidden; }
    - width depends on count (1/2/3/4)
 ========================= */
 
+/* =========================
+   Feed photos: ONE ROW + equal size (1/2/3/4)
+   - same height (cinema feel)
+   - equal width when multiple (esp. 4 photos)
+========================= */
+
 .feedPhotos{
   --gap: 14px;
-  --h: clamp(150px, 22vw, 220px); /* ✅ 不管幾張，高度都差不多（手機也不會太大） */
+  --h: clamp(150px, 22vw, 220px);
 
-  display: grid;
-  grid-auto-flow: column;   /* ✅ 永遠橫向一排 */
+  display: flex;            /* ✅ 改 flex，避免 4 張變細條 */
   gap: var(--gap);
-  align-items: stretch;
-
   width: 100%;
   margin-top: 10px;
+
+  align-items: stretch;
 }
 
-/* ✅ 依照片數量決定欄數（但仍是一排） */
-.feedPhotos[data-count="1"]{ grid-template-columns: 1fr; }
-.feedPhotos[data-count="2"]{ grid-template-columns: repeat(2, 1fr); }
-.feedPhotos[data-count="3"]{ grid-template-columns: repeat(3, 1fr); }
-.feedPhotos[data-count="4"]{ grid-template-columns: repeat(4, 1fr); }
-
-/* ✅ 每張照片都是「影院螢幕」長方形框，且高度固定 */
+/* ✅ 每張都平均分配寬度（1/2/3/4 都會等寬） */
 .feedPhotos .ph{
-  height: var(--h);
+  flex: 1 1 0;              /* ✅ 關鍵：每張同寬 */
+  height: var(--h);         /* ✅ 同高 */
   border-radius: 18px;
   overflow: hidden;
   display: block;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.08);
+  min-width: 0;             /* ✅ 防止內容撐破導致不等寬 */
 }
 
-/* ✅ 圖片填滿框框（裁切多餘部分），保持漂亮一致 */
+/* ✅ 圖片裁切填滿框框 */
 .feedPhotos .ph img{
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: cover;        /* ✅ 允許裁切，確保一致 */
 }
+
