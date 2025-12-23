@@ -944,13 +944,13 @@ body:has(#postList) .container,
 body:has(#postList) .wrap,
 body:has(#postList) .page,
 body:has(#postList) .main{
-  max-width: 1400px;
-  width: min(1400px, 96vw);
+  max-width: 1180px;
+  width: min(1180px, 94vw);
 }
 /* ===== 漂浮影廳：整體版面變寬（新增貼文區 + 貼文清單）===== */
 #postForm,
 #postList{
-  width: min(1300px, 97vw);   /* 1180 可改 1100~1400，越大越寬 */
+  width: min(1180px, 94vw);   /* 1180 可改 1100~1400，越大越寬 */
   margin-left: auto;
   margin-right: auto;        /* ✅ 置中 */
 }
@@ -971,7 +971,7 @@ body:has(#postList) .main{
 /* 保底：把 hall 主要內容置中（不太挑結構） */
 body #postForm,
 body #postList{
-  width: min(1300px, 97vw);
+  width: min(1180px, 94vw);
   margin-left: auto;
   margin-right: auto;
 }
