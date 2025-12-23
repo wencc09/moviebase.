@@ -1,3 +1,4 @@
+
 /* MovieBase shared app.js (fixed)
    - Robust Google GIS init (retry until SDK ready)
    - Better backend error visibility
@@ -5,10 +6,9 @@
 */
 
 const CONFIG = {
-  GAS_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbz88B4BVLgbSGtLTTnPJGlBeBFcU9h-D8AqvnuC0upUBh41hHrrIEWDfQNyo2XVLAyF/exec",
+  GAS_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyuipb05zxPbPp7iAotqe_Oya4je2s-l3COcJ8kDO7e4VHjdLRuNwJhrymkPN02b9Sd/exec",
   GOOGLE_CLIENT_ID: "709445153038-vh9tvcrk5vtj0r3il5r81j9gl1k68l98.apps.googleusercontent.com",
 };
-
 
 const MB = {
   state: {
@@ -395,7 +395,6 @@ window.addEventListener("load", boot);
       content,
       tags,
       ts: row.ts || "",
-      photos: [dataUrl1, dataUrl2, dataUrl3]
     };
   }
 
@@ -503,7 +502,6 @@ window.addEventListener("load", boot);
       rating: Math.min(5, Math.max(1, mood)),
       review: content,
       hashtags: tags,
-      photos: [dataUrl1, dataUrl2, dataUrl3]
     };
 
     const data = await apiPOST(payload);
