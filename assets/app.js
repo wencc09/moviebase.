@@ -64,10 +64,16 @@ async function apiGET(params) {
 async function verifyMe() {
   const idToken = localStorage.getItem("id_token");
   if (!idToken) return null;
+
   const data = await apiPOST({ action: "me", idToken });
-  if (!data.ok) throw new Error(data.error || "me failed");
+  if (!data.ok) {
+    // ✅ token 壞掉就清掉
+    localStorage.removeItem("id_token");
+    throw new Error(data.error || "me failed");
+  }
   return data.user;
 }
+
 
 /* =========================
    After-auth redirect
@@ -327,6 +333,7 @@ async function boot() {
       else setModeGuest();
     } catch (e) {
       console.error(e);
+      localStorage.removeItem("id_token");   // ✅ 加這行
       setModeGuest();
     }
   }
