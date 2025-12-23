@@ -344,6 +344,7 @@ window.addEventListener("load", boot);
 /* =========================
    Feed Wall (Sheet-backed)
    - works for app.html hall tab (ids: postList/postForm/...)
+   + supports up to 4 photos per post (front-end)
 ========================= */
 (function () {
   const hasEl = (id) => !!document.getElementById(id);
@@ -383,9 +384,109 @@ window.addEventListener("load", boot);
     return "電影";
   }
 
+  // ---- photos helpers (front-end) ----
+  const MAX_PHOTOS = 4;
+  const MAX_EACH_BYTES = 1.5 * 1024 * 1024; // 1.5MB (可自行調)
+
+  function pickPhotoArrayFromRow(row) {
+    // 後端可能回不同欄位名：盡量都吃
+    let photos =
+      row.photos ||
+      row.photoUrls ||
+      row.images ||
+      row.imageUrls ||
+      null;
+
+    // 有些人會把 JSON 字串放在 photosJson / photos 欄位
+    if (!photos && typeof row.photosJson === "string") {
+      try { photos = JSON.parse(row.photosJson); } catch (_) {}
+    }
+    if (!photos && typeof row.photos === "string") {
+      // row.photos 可能其實是一個 JSON 字串
+      const s = row.photos.trim();
+      if (s.startsWith("[") || s.startsWith("{")) {
+        try { photos = JSON.parse(s); } catch (_) {}
+      }
+    }
+
+    if (!photos) return [];
+
+    // 允許：["url1","url2"] 或 [{url:"..."}, ...]
+    if (Array.isArray(photos)) {
+      return photos
+        .map(p => (typeof p === "string" ? p : (p?.url || p?.src || "")))
+        .filter(Boolean)
+        .slice(0, MAX_PHOTOS);
+    }
+
+    return [];
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function readPhotosFromInput() {
+    const input = $("postPhotos");
+    if (!input || !input.files) return [];
+
+    const files = Array.from(input.files || []);
+    if (!files.length) return [];
+
+    if (files.length > MAX_PHOTOS) {
+      toast(`最多只能選 ${MAX_PHOTOS} 張照片喔！`);
+      input.value = "";
+      renderPhotoPreview([]);
+      return [];
+    }
+
+    for (const f of files) {
+      if (!f.type.startsWith("image/")) {
+        toast("只能上傳圖片檔喔！");
+        input.value = "";
+        renderPhotoPreview([]);
+        return [];
+      }
+      if (f.size > MAX_EACH_BYTES) {
+        toast("圖片太大了！建議每張 1.5MB 內（可先用手機/網站壓縮）");
+        input.value = "";
+        renderPhotoPreview([]);
+        return [];
+      }
+    }
+
+    const dataUrls = [];
+    for (const f of files) {
+      const url = await fileToDataUrl(f);
+      dataUrls.push(url);
+    }
+    return dataUrls.slice(0, MAX_PHOTOS);
+  }
+
+  function renderPhotoPreview(urls) {
+    const wrap = $("photoPreview");
+    if (!wrap) return;
+    if (!urls || !urls.length) {
+      wrap.innerHTML = "";
+      return;
+    }
+    wrap.innerHTML = urls.map(u => `
+      <div class="pv">
+        <img src="${escapeHtml(u)}" alt="preview" />
+      </div>
+    `).join("");
+  }
+
+  // ---- mapping row -> card ----
   function toCard(row) {
     const tags = splitTags(row.hashtags || "");
     const content = row.review || row.note || "";
+    const photos = pickPhotoArrayFromRow(row);
     return {
       id: row.id,
       author: row.authorName || "User",
@@ -395,6 +496,7 @@ window.addEventListener("load", boot);
       content,
       tags,
       ts: row.ts || "",
+      photos, // <= NEW
     };
   }
 
@@ -442,6 +544,16 @@ window.addEventListener("load", boot);
 
         ${c.title ? `<div class="feedTitle">${escapeHtml(c.title)}</div>` : ""}
         <div class="feedContent">${escapeHtml(c.content)}</div>
+
+        ${c.photos?.length ? `
+          <div class="feedPhotos" data-count="${c.photos.length}">
+            ${c.photos.slice(0, MAX_PHOTOS).map(u => `
+              <a class="ph" href="${escapeHtml(u)}" target="_blank" rel="noopener">
+                <img src="${escapeHtml(u)}" alt="photo" loading="lazy" />
+              </a>
+            `).join("")}
+          </div>
+        ` : ""}
 
         ${c.tags?.length ? `
           <div class="feedTags">
@@ -493,6 +605,9 @@ window.addEventListener("load", boot);
       return null;
     }
 
+    // ✅ NEW：讀取最多 4 張圖片（DataURL base64）
+    const photoDataUrls = await readPhotosFromInput();
+
     const idToken = localStorage.getItem("id_token");
     const payload = {
       action: "create_post",
@@ -502,6 +617,7 @@ window.addEventListener("load", boot);
       rating: Math.min(5, Math.max(1, mood)),
       review: content,
       hashtags: tags,
+      photos: photoDataUrls, // ✅ NEW：丟給後端
     };
 
     const data = await apiPOST(payload);
@@ -533,6 +649,19 @@ window.addEventListener("load", boot);
       try { await refresh(); } catch (_) {}
     });
 
+    // ✅ NEW：選圖預覽 + 限制最多 4 張
+    $("postPhotos")?.addEventListener("change", async () => {
+      try {
+        const urls = await readPhotosFromInput();
+        renderPhotoPreview(urls);
+      } catch (e) {
+        console.error(e);
+        toast("讀取圖片失敗");
+        $("postPhotos").value = "";
+        renderPhotoPreview([]);
+      }
+    });
+
     $("postForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!requireLogin("發布貼文")) return;
@@ -544,6 +673,8 @@ window.addEventListener("load", boot);
         if ($("postTitle")) $("postTitle").value = "";
         if ($("postContent")) $("postContent").value = "";
         if ($("postTags")) $("postTags").value = "";
+        if ($("postPhotos")) $("postPhotos").value = "";
+        renderPhotoPreview([]);
 
         toast("✅ 已發布（已寫入試算表）");
         await refresh();
@@ -559,3 +690,4 @@ window.addEventListener("load", boot);
     });
   });
 })();
+
