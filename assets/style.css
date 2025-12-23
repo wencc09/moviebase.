@@ -633,7 +633,7 @@ body{ margin:0; overflow-x:hidden; }
 }
 
 /* 2/3/4 張：高度固定，寬度平均（看起來同一排同高度） */
-.feedPhotos[data-count="2"]{ --h: 220px; }
+.feedPhotos[data-count="2"]{ --h: 300px; }
 .feedPhotos[data-count="3"]{ --h: 210px; }
 .feedPhotos[data-count="4"]{ --h: 200px; }
 
