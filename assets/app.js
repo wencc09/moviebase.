@@ -504,6 +504,45 @@ window.addEventListener("load", boot);
     };
   };
 
+   let __pvObjectUrls = []; // 記住上一批 objectURL，才能釋放記憶體
+
+   function readPreviewUrlsFromInput() {
+     const input = $("postPhotos");
+     if (!input || !input.files) return [];
+   
+     const files = Array.from(input.files || []);
+     if (!files.length) return [];
+   
+     // 跟 readPhotosFromInput 一樣的檢查
+     if (files.length > MAX_PHOTOS) {
+       toast(`最多只能選 ${MAX_PHOTOS} 張照片喔！`);
+       input.value = "";
+       renderPhotoPreview([]);
+       return [];
+     }
+   
+     for (const f of files) {
+       if (!f.type.startsWith("image/")) {
+         toast("只能上傳圖片檔喔！");
+         input.value = "";
+         renderPhotoPreview([]);
+         return [];
+       }
+       if (f.size > MAX_EACH_BYTES) {
+         toast("圖片太大了！建議每張 1.5MB 內（可先壓縮）");
+         input.value = "";
+         renderPhotoPreview([]);
+         return [];
+       }
+     }
+
+  // 釋放上一批 preview 的 objectURL，避免越選越吃 RAM
+  __pvObjectUrls.forEach(u => URL.revokeObjectURL(u));
+  __pvObjectUrls = files.map(f => URL.createObjectURL(f)).slice(0, MAX_PHOTOS);
+
+  return __pvObjectUrls;
+}
+
   // 預熱後端（減少第一次操作 3~8 秒）
   function warmupBackend() {
     // GET ping
@@ -772,17 +811,18 @@ window.addEventListener("load", boot);
 
 
     // ✅ NEW：選圖預覽 + 限制最多 4 張
-    $("postPhotos")?.addEventListener("change", async () => {
-      try {
-        const urls = await readPhotosFromInput();
-        renderPhotoPreview(urls);
-      } catch (e) {
-        console.error(e);
-        toast("讀取圖片失敗");
-        $("postPhotos").value = "";
-        renderPhotoPreview([]);
-      }
-    });
+    $("postPhotos")?.addEventListener("change", () => {
+     try {
+       const urls = readPreviewUrlsFromInput(); // ✅ 超快，不讀 base64
+       renderPhotoPreview(urls);
+     } catch (e) {
+       console.error(e);
+       toast("讀取圖片失敗");
+       $("postPhotos").value = "";
+       renderPhotoPreview([]);
+     }
+   });
+
 
       $("postForm")?.addEventListener("submit", async (e) => {
          e.preventDefault();
