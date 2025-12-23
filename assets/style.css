@@ -578,81 +578,44 @@ body{ margin:0; overflow-x:hidden; }
 }
 
 /* =========================
-   Post Photo Preview (before publish)
-   ========================= */
-#photoPreview.photoPreview{
+   Feed photos: always ONE ROW
+   - height is consistent (cinema screen feel)
+   - width depends on count (1/2/3/4)
+========================= */
+
+.feedPhotos{
+  --gap: 14px;
+  --h: clamp(150px, 22vw, 220px); /* ✅ 不管幾張，高度都差不多（手機也不會太大） */
+
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
-  gap: 10px;
+  grid-auto-flow: column;   /* ✅ 永遠橫向一排 */
+  gap: var(--gap);
+  align-items: stretch;
+
+  width: 100%;
   margin-top: 10px;
 }
 
-#photoPreview.photoPreview .pv{
-  width: 100%;
-  aspect-ratio: 1 / 1;      /* 變成正方形縮圖 */
-  border-radius: 12px;
+/* ✅ 依照片數量決定欄數（但仍是一排） */
+.feedPhotos[data-count="1"]{ grid-template-columns: 1fr; }
+.feedPhotos[data-count="2"]{ grid-template-columns: repeat(2, 1fr); }
+.feedPhotos[data-count="3"]{ grid-template-columns: repeat(3, 1fr); }
+.feedPhotos[data-count="4"]{ grid-template-columns: repeat(4, 1fr); }
+
+/* ✅ 每張照片都是「影院螢幕」長方形框，且高度固定 */
+.feedPhotos .ph{
+  height: var(--h);
+  border-radius: 18px;
   overflow: hidden;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,.06);
+  display: block;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-#photoPreview.photoPreview .pv img{
+/* ✅ 圖片填滿框框（裁切多餘部分），保持漂亮一致 */
+.feedPhotos .ph img{
   width: 100%;
   height: 100%;
-  object-fit: cover;         /* 裁切填滿，不變形 */
   display: block;
+  object-fit: cover;
 }
-
-/* 保險：避免任何預覽圖把版面撐爆 */
-#photoPreview img{
-  max-width: 100%;
-}
-
-/* ===== MovieBase：貼文照片統一方形縮圖（1~4張） ===== */
-.mbPhotoGrid,
-.photoPreview {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 永遠兩欄 */
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.mbPhotoItem {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;          /* 正方形 */
-  overflow: hidden;
-  border-radius: 16px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-}
-
-.mbPhotoItem img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;            /* 裁切填滿 */
-  display: block;
-}
-
-/* 1張：維持「兩張時單張大小」，置中 */
-.mbPhotoGrid[data-count="1"] .mbPhotoItem,
-.photoPreview[data-count="1"] .mbPhotoItem {
-  grid-column: 1 / -1; /* 佔整列，但我們限制最大寬 */
-  max-width: calc((100% - 12px) / 2); /* = 兩欄其中一格的寬度 */
-  justify-self: center;
-}
-
-/* 3張：第三張也置中（看起來更乾淨） */
-.mbPhotoGrid[data-count="3"] .mbPhotoItem:nth-child(3) {
-  grid-column: 1 / -1;
-  max-width: calc((100% - 12px) / 2);
-  justify-self: center;
-}
-
-/* （可選）手機間距稍小 */
-@media (max-width: 520px) {
-  .mbPhotoGrid,
-  .photoPreview { gap: 10px; }
-}
-
-
