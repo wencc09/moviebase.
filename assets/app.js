@@ -482,18 +482,40 @@ window.addEventListener("load", boot);
   }
 
   function renderPhotoPreview(urls) {
-    const wrap = $("photoPreview");
-    if (!wrap) return;
-    if (!urls || !urls.length) {
-      wrap.innerHTML = "";
-      return;
-    }
-    wrap.innerHTML = urls.map(u => `
-      <div class="pv">
-        <img src="${escapeHtml(u)}" alt="preview" />
-      </div>
-    `).join("");
-  }
+     const wrap = $("photoPreview");
+     if (!wrap) return;
+   
+     if (!urls || !urls.length) {
+       wrap.innerHTML = "";
+       return;
+     }
+   
+     // ✅ 強制縮圖尺寸（不靠 CSS）
+     const BOX = window.innerWidth <= 480 ? 72 : 96;
+   
+     wrap.style.display = "flex";
+     wrap.style.flexWrap = "wrap";
+     wrap.style.gap = "10px";
+     wrap.style.marginTop = "10px";
+   
+     wrap.innerHTML = urls.map(u => `
+       <div class="pv" style="
+         width:${BOX}px;
+         height:${BOX}px;
+         border-radius:14px;
+         overflow:hidden;
+         flex:0 0 auto;
+       ">
+         <img src="${escapeHtml(u)}" alt="preview" style="
+           width:100%;
+           height:100%;
+           object-fit:cover;
+           display:block;
+         "/>
+       </div>
+     `).join("");
+   }
+
 
      // ---- perf helpers ----//
   const debounce = (fn, ms = 250) => {
