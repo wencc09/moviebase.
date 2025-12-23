@@ -766,3 +766,39 @@ html::before{
 }
 
 
+.feedActions{
+  margin-top: 10px;
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.heartBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.85);
+  cursor:pointer;
+  user-select:none;
+}
+
+.heartBtn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.heartBtn .heartIcon{
+  font-size:16px;
+  line-height:1;
+}
+
+.heartBtn.is-liked{
+  background: rgba(255, 105, 180, .18);
+  border-color: rgba(255, 105, 180, .35);
+}
+
+
