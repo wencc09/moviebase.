@@ -501,6 +501,7 @@ window.addEventListener("load", boot);
       rating: Math.min(5, Math.max(1, mood)),
       review: content,
       hashtags: tags,
+      photos: [dataUrl1, dataUrl2, dataUrl3]
     };
 
     const data = await apiPOST(payload);
