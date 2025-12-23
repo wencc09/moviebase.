@@ -907,32 +907,6 @@ html::before{
   pointer-events: auto;
 }
 
-/* ===== Feed Wall photos: always small square grid (1~4) ===== */
-.feedPhotos{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-
-  /* 讓整塊照片不要佔滿整張卡片 */
-  max-width: 520px;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.feedPhotos .ph{
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;       /* ✅ 正方形 */
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.feedPhotos .ph img{
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  display: block;
-}
 
 /* 手機再小一點（避免卡） */
 @media (max-width: 520px){
