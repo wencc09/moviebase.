@@ -965,28 +965,34 @@ window.addEventListener("load", boot);
       }
       
       async function refreshComments(opts = {}) {
-        if (!currentCommentPostId) return;
+        try {
+          if (!currentCommentPostId) return;
       
-        const force = !!opts.force;
-        const postId = String(currentCommentPostId);
+          const force = !!opts.force;
+          const postId = String(currentCommentPostId);
       
-        const cached = COMMENT_CACHE.get(postId);
-        if (!force && cached && (Date.now() - cached.at < CACHE_TTL_MS)) return;
+          const cached = COMMENT_CACHE.get(postId);
+          if (!force && cached && (Date.now() - cached.at < CACHE_TTL_MS)) {
+            renderComments(cached.rows || []);
+            return;
+          }
       
-        const data = await apiGET({ action: "list_comments", postId, limit: "50" });
-        if (!data.ok) throw new Error(data.error || "list_comments failed");
+          const data = await apiGET({ action: "list_comments", postId, limit: "50" });
+          if (!data.ok) throw new Error(data.error || "list_comments failed");
       
-        COMMENT_CACHE.set(postId, { at: Date.now(), rows: data.rows || [] });
-        renderComments(data.rows || []);
+          const rows = data.rows || [];
+          COMMENT_CACHE.set(postId, { at: Date.now(), rows });
+          renderComments(rows);
+        } catch (e) {
+          // ✅ 只要 currentCommentPostId 還是同一篇，才顯示錯誤（避免 A/B 切換時覆蓋畫面）
+          if (String(currentCommentPostId) !== String((opts && opts.postId) || currentCommentPostId)) return;
+      
+          const wrap = document.getElementById("commentList");
+          if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
+          console.error(e);
+        }
       }
-      
-              } catch (e) {
-                if (reqId !== currentCommentReq) return;
-                const wrap = document.getElementById("commentList");
-                if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
-                console.error(e);
-              }
-            }
+
 
       
       // 1) 點 💬 開彈窗
