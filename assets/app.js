@@ -396,6 +396,7 @@ window.addEventListener("load", boot);
       content,
       tags,
       ts: row.ts || "",
+      photos: [dataUrl1, dataUrl2, dataUrl3]
     };
   }
 
