@@ -608,3 +608,51 @@ body{ margin:0; overflow-x:hidden; }
   max-width: 100%;
 }
 
+/* ===== MovieBase：貼文照片統一方形縮圖（1~4張） ===== */
+.mbPhotoGrid,
+.photoPreview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 永遠兩欄 */
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.mbPhotoItem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;          /* 正方形 */
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.mbPhotoItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;            /* 裁切填滿 */
+  display: block;
+}
+
+/* 1張：維持「兩張時單張大小」，置中 */
+.mbPhotoGrid[data-count="1"] .mbPhotoItem,
+.photoPreview[data-count="1"] .mbPhotoItem {
+  grid-column: 1 / -1; /* 佔整列，但我們限制最大寬 */
+  max-width: calc((100% - 12px) / 2); /* = 兩欄其中一格的寬度 */
+  justify-self: center;
+}
+
+/* 3張：第三張也置中（看起來更乾淨） */
+.mbPhotoGrid[data-count="3"] .mbPhotoItem:nth-child(3) {
+  grid-column: 1 / -1;
+  max-width: calc((100% - 12px) / 2);
+  justify-self: center;
+}
+
+/* （可選）手機間距稍小 */
+@media (max-width: 520px) {
+  .mbPhotoGrid,
+  .photoPreview { gap: 10px; }
+}
+
+
