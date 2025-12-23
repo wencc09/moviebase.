@@ -631,6 +631,7 @@ window.addEventListener("load", boot);
 
   }
 
+  let ALL_CARDS = []; // ✅ 貼文快取：只要後端載入一次，搜尋就用它
   async function loadCards() {
   const idToken = localStorage.getItem("id_token");
 
@@ -681,22 +682,24 @@ window.addEventListener("load", boot);
   let __cardsCache = [];
   let __loadedOnce = false;
 
-  async function refresh(opts = { force: false }) {
-    const q = $("postSearch")?.value || "";
+  async function refresh(forceReload = true) {
+     const q = $("postSearch")?.value || "";
+   
+     if (forceReload) {
+       ALL_CARDS = await loadCards();      // ✅ 只有需要時才打後端
+     }
+   
+     render(ALL_CARDS, q);                // ✅ 搜尋只用快取過濾
+     applyRoleLock();
+   }
 
-    // 沒 force 就不要一直打後端
-    if (!__loadedOnce || opts.force) {
-      __cardsCache = await loadCards();
-      __loadedOnce = true;
-    }
-
-    render(__cardsCache, q);
-    applyRoleLock();
-  }
 
 
   // Mount
   window.addEventListener("load", async () => {
+    apiGET({ action: "ping" }).catch(()=>{});
+    const idToken = localStorage.getItem("id_token");
+    if (idToken) apiPOST({ action:"ping", idToken }).catch(()=>{});
     warmupBackend();
     try {
       applyRoleLock();
@@ -708,61 +711,52 @@ window.addEventListener("load", boot);
 
 
       $("postList")?.addEventListener("click", async (e) => {
-      const btn = e.target.closest(".heartBtn");
-      if (!btn) return;
-      if (!requireLogin("按愛心")) return;
-
-      const postId = btn.dataset.likeId;
-      const countEl = btn.querySelector(".heartCount");
-
-      // optimistic UI
-      const wasLiked = btn.classList.contains("is-liked");
-      const oldCount = Number(countEl?.textContent || "0");
-      const newLiked = !wasLiked;
-      const newCount = oldCount + (newLiked ? 1 : -1);
-
-      btn.classList.toggle("is-liked", newLiked);
-      if (countEl) countEl.textContent = String(Math.max(0, newCount));
-      btn.disabled = true;
-
-      // 同步更新 cache（讓搜尋/重繪也一致）
-      const hit = __cardsCache.find(x => String(x.id) === String(postId));
-      if (hit) {
-        hit.liked = newLiked;
-        hit.likeCount = Math.max(0, newCount);
-      }
-
-      try {
-        const idToken = localStorage.getItem("id_token");
-        const data = await apiPOST({ action: "toggle_like", idToken, postId });
-        if (!data.ok) throw new Error(data.error || "toggle_like failed");
-
-        // 以後端為準（避免不同步）
-        btn.classList.toggle("is-liked", !!data.liked);
-        if (countEl) countEl.textContent = String(data.likeCount || 0);
-        if (hit) {
-          hit.liked = !!data.liked;
-          hit.likeCount = Number(data.likeCount || 0);
+        const btn = e.target.closest(".heartBtn");
+        if (!btn) return;
+      
+        if (!requireLogin("按愛心")) return;
+      
+        const postId = btn.dataset.likeId;
+        const countEl = btn.querySelector(".heartCount");
+      
+        // ✅ 先記住原狀態
+        const wasLiked = btn.classList.contains("is-liked");
+        const oldCount = Number(countEl?.textContent || "0");
+      
+        // ✅ 先在 UI 立刻更新（Optimistic）
+        const nowLiked = !wasLiked;
+        const nowCount = Math.max(0, oldCount + (nowLiked ? 1 : -1));
+        btn.classList.toggle("is-liked", nowLiked);
+        if (countEl) countEl.textContent = String(nowCount);
+      
+        btn.disabled = true;
+      
+        try {
+          const idToken = localStorage.getItem("id_token");
+          const data = await apiPOST({ action: "toggle_like", idToken, postId });
+          if (!data.ok) throw new Error(data.error || "toggle_like failed");
+      
+          // ✅ 後端回來後，以後端為準（避免不同步）
+          btn.classList.toggle("is-liked", !!data.liked);
+          if (countEl) countEl.textContent = String(data.likeCount || 0);
+      
+        } catch (err) {
+          // ✅ 失敗就回滾
+          btn.classList.toggle("is-liked", wasLiked);
+          if (countEl) countEl.textContent = String(oldCount);
+      
+          console.error(err);
+          toast(`愛心失敗：${String(err.message || err)}`.slice(0, 120));
+        } finally {
+          btn.disabled = (MB.state.mode !== "user");
         }
-      } catch (err) {
-        // 回滾
-        btn.classList.toggle("is-liked", wasLiked);
-        if (countEl) countEl.textContent = String(oldCount);
-        if (hit) {
-          hit.liked = wasLiked;
-          hit.likeCount = oldCount;
-        }
-        console.error(err);
-        toast(`愛心失敗：${String(err.message || err)}`.slice(0, 120));
-      } finally {
-        btn.disabled = (MB.state.mode !== "user");
-      }
-    });
+      });
+
 
 
     $("btnRefreshPosts")?.addEventListener("click", async () => {
-      try { await refresh(); } catch (e) { toast(String(e.message || e)); }
-    });
+     try { await refresh(true); } catch (e) { toast(String(e.message || e)); }
+   });
 
       $("postSearch")?.addEventListener("input", debounce(() => {
       const q = $("postSearch")?.value || "";
@@ -880,6 +874,7 @@ window.addEventListener("load", boot);
       
       let currentCommentPostId = "";
       let currentCommentBtn = null;
+      let currentCommentReq = 0; // ✅ 用來避免 A/B 競速覆蓋
       
       function openCommentModal(postId, title, btnEl) {
         const m = document.getElementById("commentModal");
@@ -891,12 +886,17 @@ window.addEventListener("load", boot);
         const t = document.getElementById("commentModalTitle");
         if (t) t.textContent = title ? `留言｜${title}` : "留言";
       
+        // ✅ 先清空，避免殘留上一則貼文的留言
+        const wrap = document.getElementById("commentList");
+        if (wrap) wrap.innerHTML = `<div class="muted">載入留言中…</div>`;
+      
         m.classList.add("is-open");
         m.setAttribute("aria-hidden", "false");
       
-        refreshComments();
         applyCommentRoleLock();
+        refreshComments(); // 這裡會用新版 refreshComments 防競速
       }
+
       
       function closeCommentModal() {
         const m = document.getElementById("commentModal");
@@ -940,10 +940,28 @@ window.addEventListener("load", boot);
       
       async function refreshComments() {
         if (!currentCommentPostId) return;
-        const data = await apiGET({ action: "list_comments", postId: currentCommentPostId });
-        if (!data.ok) throw new Error(data.error || "list_comments failed");
-        renderComments(data.rows || []);
+      
+        const reqId = ++currentCommentReq;      // ✅ 產生這次請求的編號
+        const postId = currentCommentPostId;     // ✅ 把當下 postId 固定住
+      
+        try {
+          const data = await apiGET({ action: "list_comments", postId });
+      
+          // ✅ 如果使用者已經切到別篇貼文（reqId 不是最新），就不要渲染
+          if (reqId !== currentCommentReq) return;
+          if (postId !== currentCommentPostId) return;
+      
+          if (!data.ok) throw new Error(data.error || "list_comments failed");
+          renderComments(data.rows || []);
+        } catch (e) {
+          // ✅ 同樣要檢查是否已切換貼文
+          if (reqId !== currentCommentReq) return;
+          const wrap = document.getElementById("commentList");
+          if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
+          console.error(e);
+        }
       }
+
       
       // 1) 點 💬 開彈窗
       document.getElementById("postList")?.addEventListener("click", async (e) => {
@@ -1000,9 +1018,10 @@ window.addEventListener("load", boot);
       });
 
     window.addEventListener("mb:auth", async () => {
-      applyRoleLock();
-      try { await refresh(); } catch (_) {}
-    });
+     applyRoleLock();
+     try { await refresh(true); } catch (_) {}
+   });
+
   });
 })();
 
