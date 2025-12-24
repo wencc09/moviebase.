@@ -77,6 +77,32 @@ async function apiGET(params) {
 }
 
 
+async function initNicknameUI() {
+  const elCur = document.getElementById("nickCurrent");
+  const elIn = document.getElementById("nickInput");
+  const elBtn = document.getElementById("nickSave");
+  if (!elCur || !elIn || !elBtn) return;
+
+  try {
+    const prof = await getProfile();
+    elCur.textContent = prof.nickname ? `目前暱稱：${prof.nickname}` : "目前暱稱：未設定";
+    elIn.value = prof.nickname || "";
+  } catch (e) {
+    elCur.textContent = "尚未登入或讀取失敗";
+  }
+
+  elBtn.addEventListener("click", async () => {
+    try {
+      const nick = elIn.value.trim();
+      const out = await setNickname(nick);
+      elCur.textContent = `目前暱稱：${out.nickname}`;
+      alert("暱稱已更新！");
+    } catch (e) {
+      alert("更新失敗：" + e.message);
+    }
+  });
+}
+
 
 async function verifyMe() {
   const idToken = localStorage.getItem("id_token");
