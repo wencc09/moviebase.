@@ -56,14 +56,14 @@ async function apiPOST(payload) {
 }
 
 async function apiGET(params) {
-  const u = new URL(CONFIG.GAS_WEBAPP_URL);
-  Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
-
-  // ✅ 防止瀏覽器/中間層快取 GET（尤其 list_comments/list_posts）
-  u.searchParams.set("_", String(Date.now()));
-
-  return apiFetch_(u.toString(), { method: "GET", cache: "no-store" });
+  // 保留 apiGET 名稱，但實際全部改用 POST，配合後端 doPost(e)
+  return apiFetch(CONFIG.GAS_WEBAPP_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params || {}),
+  });
 }
+
 
 
 
