@@ -624,15 +624,34 @@ body{ margin:0; overflow-x:hidden; }
   display: block;
 }
 
-/* 1 張：更寬＋置中（像電影大螢幕） */
-.feedPhotos[data-count="1"]{
-  --h: 280px;                 /* ✅ 單張可以稍微高一點更像大螢幕 */
-}
-.feedPhotos[data-count="1"] .ph{
-  flex: 0 0 min(100%, 820px);
+/* 一律確保 feedPhotos 用 flex */
+.feedPhotos{
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
 }
 
-    /* ✅ 單張最大寬度（想再寬就調 760） */
+/* 1 張：置中 + 盡量吃滿卡片，但上限 820 */
+.feedPhotos[data-count="1"]{
+  justify-content: center;
+}
+
+.feedPhotos[data-count="1"] .ph{
+  flex: 0 1 820px;              /* 上限 820 的「彈性寬」 */
+  width: min(100%, 820px);       /* 真正控制寬度（比 min() 放在 flex-basis 穩） */
+  max-width: 820px;
+}
+
+/* 讓它像「影院螢幕」長方形：高度一致、可裁切 */
+.feedPhotos[data-count="1"] .ph img{
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 21 / 9;          /* 你想更普通就改 16/9 */
+  object-fit: cover;
+  display: block;
+}
+
+
 
 
 /* 2/3/4 張：高度固定，寬度平均（看起來同一排同高度） */
