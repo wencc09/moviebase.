@@ -1345,14 +1345,7 @@ function initNicknameUI_() {
     }
   });
 
-   MB.state.profile = out.profile || out;   // out 是後端回來的資料
-// 重新把上方顯示名更新一次
-   const topNameEl =
-     document.getElementById("topUserName") ||
-     document.getElementById("meName") ||
-     document.querySelector("[data-user-name]");
-   if (topNameEl) topNameEl.textContent = displayName_(MB.state.user, MB.state.profile);
-
+   
 
   // 初次載入 + 登入狀態變動時更新
   render();
