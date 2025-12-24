@@ -77,6 +77,20 @@ async function userSetNickname(nickname) {
   return await apiPOST({ action: "user_set_nickname", idToken, nickname });
 }
 
+async function loadProfile_() {
+  const idToken = MB.state?.idToken || localStorage.getItem("id_token");
+  if (!idToken) return null;
+
+  const r = await apiPOST({ action: "get_profile", idToken });
+  if (r && r.ok) {
+    // 你後端回傳可能叫 profile / row / data，這裡做容錯
+    MB.state.profile = r.profile || r.row || r.data || { nickname: r.nickname };
+  } else {
+    MB.state.profile = null;
+  }
+  return MB.state.profile;
+}
+
 async function apiGET(params) {
   const u = new URL(CONFIG.GAS_WEBAPP_URL);
   Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
@@ -95,7 +109,8 @@ async function initNicknameUI() {
   if (!elCur || !elIn || !elBtn) return;
 
   try {
-    const prof = await getProfile();
+    const profRes = await userGet(); 
+    const prof = profRes.profile || profRes.user || profRes;
     elCur.textContent = prof.nickname ? `目前暱稱：${prof.nickname}` : "目前暱稱：未設定";
     elIn.value = prof.nickname || "";
   } catch (e) {
@@ -105,7 +120,7 @@ async function initNicknameUI() {
   elBtn.addEventListener("click", async () => {
     try {
       const nick = elIn.value.trim();
-      const out = await setNickname(nick);
+      const outRes = await userSetNickname(nick); 
       elCur.textContent = `目前暱稱：${out.nickname}`;
       alert("暱稱已更新！");
     } catch (e) {
@@ -125,6 +140,9 @@ async function verifyMe() {
     localStorage.removeItem("id_token");
     throw new Error(data.error || "me failed");
   }
+  // ✅ Step2：登入成功後立刻把 profile 抓回來
+  try { await loadProfile_(); } catch (_) { MB.state.profile = null; }
+
   return data.user;
 }
 
