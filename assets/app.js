@@ -92,6 +92,62 @@ async function verifyMe() {
 }
 
 
+function jsonp(url, timeoutMs = 12000) {
+  return new Promise((resolve, reject) => {
+    const cb = "__mb_cb_" + Math.random().toString(36).slice(2);
+    const script = document.createElement("script");
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("JSONP timeout"));
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cb];
+      script.remove();
+    }
+
+    window[cb] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    const sep = url.includes("?") ? "&" : "?";
+    script.src = url + sep + "callback=" + encodeURIComponent(cb);
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("JSONP load error"));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function apiJSONP(params) {
+  const u = new URL(CONFIG.GAS_WEBAPP_URL);
+  Object.entries(params || {}).forEach(([k,v]) => u.searchParams.set(k, v));
+  // 防快取
+  u.searchParams.set("_t", String(Date.now()));
+  const data = await jsonp(u.toString());
+  return data;
+}
+
+async function getProfile() {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) throw new Error("missing id_token");
+  const data = await apiJSONP({ action: "get_profile", idToken });
+  if (!data.ok) throw new Error(data.error || "get_profile failed");
+  return data.profile; // {userSub,nickname,photoUrl}
+}
+
+async function setNickname(nickname) {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) throw new Error("missing id_token");
+  const data = await apiJSONP({ action: "set_nickname", idToken, nickname });
+  if (!data.ok) throw new Error(data.error || "set_nickname failed");
+  return data; // {ok:true, userSub, nickname}
+}
+
+
 /* =========================
    After-auth redirect
 ========================= */
