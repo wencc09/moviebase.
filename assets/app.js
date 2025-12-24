@@ -54,6 +54,17 @@ async function apiPOST(payload) {
     body: JSON.stringify(payload),
   });
 }
+async function userGet() {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) throw new Error("not logged in");
+  return await apiPOST({ action: "user_get", idToken });
+}
+
+async function userSetNickname(nickname) {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) throw new Error("not logged in");
+  return await apiPOST({ action: "user_set_nickname", idToken, nickname });
+}
 
 async function apiGET(params) {
   const u = new URL(CONFIG.GAS_WEBAPP_URL);
