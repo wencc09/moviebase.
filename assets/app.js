@@ -1248,3 +1248,8 @@ window.addEventListener("load", boot);
 
   });
 })();
+
+document.addEventListener("DOMContentLoaded", () => {
+  try { initNicknameUI(); } catch (e) {}
+});
+
