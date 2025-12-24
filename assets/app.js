@@ -1155,3 +1155,149 @@ window.addEventListener("load", boot);
   });
 })();
 
+/* ============================
+   Hall Fallback Loader (safe)
+   - If your original hall loader breaks, this keeps posts visible.
+   ============================ */
+
+(function () {
+  function escHtml_(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function pickPostListEl_() {
+    return (
+      document.querySelector("#postList") ||
+      document.querySelector("#postsList") ||
+      document.querySelector("[data-post-list]") ||
+      document.querySelector(".postList")
+    );
+  }
+
+  function normalizePhotos_(row) {
+    let arr = [];
+    const json = row?.photoUrlsJson || row?.photoUrls || "";
+    if (json) {
+      try {
+        const parsed = JSON.parse(json);
+        if (Array.isArray(parsed)) arr = parsed;
+      } catch (e) {}
+    }
+    if (!arr.length && row?.photoUrl) arr = [row.photoUrl];
+    return arr.filter(Boolean);
+  }
+
+  async function fetchPosts_() {
+    const idToken = localStorage.getItem("id_token") || "";
+    const payload = idToken ? { action: "list_posts", idToken } : { action: "list_posts" };
+    const data = await apiPOST(payload);
+    if (!data?.ok) throw new Error(data?.error || "list_posts failed");
+    return Array.isArray(data.rows) ? data.rows : [];
+  }
+
+  function renderPostsFallback_(rows) {
+    const listEl = pickPostListEl_();
+    if (!listEl) {
+      console.warn("[HallFallback] post list container not found (#postList / .postList).");
+      return false;
+    }
+
+    listEl.innerHTML = rows
+      .map((r) => {
+        const id = escHtml_(r.id);
+        const author = escHtml_(r.authorName || "User");
+        const title = escHtml_(r.title || "");
+        const review = escHtml_(r.review || "");
+        const ts = escHtml_(r.ts || r.createdAt || "");
+        const likeCount = Number(r.likeCount || 0);
+        const commentCount = Number(r.commentCount || 0);
+        const isLiked = !!r.isLiked;
+
+        const photos = normalizePhotos_(r);
+        const photoHTML = photos.length
+          ? `
+            <div style="display:flex; gap:10px; margin-top:10px;">
+              ${photos
+                .map(
+                  (url) => `
+                <img
+                  src="${escHtml_(url)}"
+                  alt="photo"
+                  style="flex:1; height:170px; object-fit:cover; border-radius:16px;"
+                  loading="lazy"
+                />
+              `
+                )
+                .join("")}
+            </div>
+          `
+          : "";
+
+        return `
+          <article class="postCard" style="margin-bottom:16px;">
+            <div class="postHeader" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <div>
+                <div class="postAuthor" style="font-weight:700;">${author}</div>
+                <div class="postTime" style="opacity:.7; font-size:12px;">${ts}</div>
+              </div>
+
+              <div class="postActions" style="display:flex; align-items:center; gap:8px;">
+                <button class="heartBtn" data-postid="${id}" aria-pressed="${isLiked ? "true" : "false"}"
+                  style="cursor:pointer;">
+                  ♥
+                </button>
+                <span class="heartCount">${likeCount}</span>
+
+                <button class="commentBtn" data-postid="${id}" style="cursor:pointer;">
+                  💬
+                </button>
+                <span class="commentCount">${commentCount}</span>
+              </div>
+            </div>
+
+            <div class="postBody" style="margin-top:10px;">
+              ${title ? `<div class="postTitle" style="font-size:16px; font-weight:700;">${title}</div>` : ""}
+              ${review ? `<div class="postReview" style="margin-top:6px; line-height:1.6;">${review}</div>` : ""}
+              ${photoHTML}
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    return true;
+  }
+
+  let __hallFallbackLoading = false;
+
+  async function hallFallbackLoad_() {
+    // 只在 #hall
+    if (!String(location.hash || "").includes("hall")) return;
+
+    // 避免重複跑
+    if (__hallFallbackLoading) return;
+    __hallFallbackLoading = true;
+
+    try {
+      const rows = await fetchPosts_();
+      const ok = renderPostsFallback_(rows);
+      console.log("[HallFallback] loaded:", rows.length, "rendered:", ok);
+    } catch (e) {
+      console.error(e);
+      if (typeof toast === "function") toast(String(e?.message || e));
+    } finally {
+      __hallFallbackLoading = false;
+    }
+  }
+
+  // 暴露一個你可以手動叫的
+  window.MB_forceHall = hallFallbackLoad_;
+
+  document.addEventListener("DOMContentLoaded", hallFallbackLoad_);
+  window.addEventListener("hashchange", hallFallbackLoad_);
+})();
