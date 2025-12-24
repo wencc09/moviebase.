@@ -1273,31 +1273,48 @@ window.addEventListener("load", boot);
     return true;
   }
 
-  let __hallFallbackLoading = false;
-
-  async function hallFallbackLoad_() {
-    // 只在 #hall
-    if (!String(location.hash || "").includes("hall")) return;
-
-    // 避免重複跑
-    if (__hallFallbackLoading) return;
-    __hallFallbackLoading = true;
-
-    try {
-      const rows = await fetchPosts_();
-      const ok = renderPostsFallback_(rows);
-      console.log("[HallFallback] loaded:", rows.length, "rendered:", ok);
-    } catch (e) {
-      console.error(e);
-      if (typeof toast === "function") toast(String(e?.message || e));
-    } finally {
-      __hallFallbackLoading = false;
-    }
-  }
-
-  // 暴露一個你可以手動叫的
-  window.MB_forceHall = hallFallbackLoad_;
-
-  document.addEventListener("DOMContentLoaded", hallFallbackLoad_);
-  window.addEventListener("hashchange", hallFallbackLoad_);
-})();
+     /* ===============================
+      MB Hall boot (safe)
+      - Ensure feed auto-loads on #hall / hall page
+      - Adds debug helper: MB_forceHall()
+   ================================ */
+   (function MB_HALL_BOOT_SAFE() {
+     async function boot() {
+       // 只在有貼文容器的頁面才跑（避免影響 records / account）
+       const hasFeed =
+         document.querySelector("#postList") ||
+         document.querySelector("#postsList") ||
+         document.querySelector("[data-posts-list]");
+   
+       if (!hasFeed) return;
+   
+       try {
+         // 你的檔案裡可能叫 refresh(true) 或 loadCards()
+         if (typeof refresh === "function") {
+           await refresh(true);
+           return;
+         }
+         if (typeof loadCards === "function") {
+           await loadCards();
+           return;
+         }
+         console.warn("[MB_HALL_BOOT_SAFE] No refresh/loadCards found.");
+       } catch (e) {
+         console.error("[MB_HALL_BOOT_SAFE] boot failed:", e);
+       }
+     }
+   
+     // 初次載入
+     if (document.readyState === "loading") {
+       document.addEventListener("DOMContentLoaded", boot);
+     } else {
+       boot();
+     }
+   
+     // hash 切頁（app.html?#hall 這種）
+     window.addEventListener("hashchange", boot);
+   
+     // 讓你可以在 Console 手動救援：
+     window.MB_forceHall = boot;
+   })();
+   
