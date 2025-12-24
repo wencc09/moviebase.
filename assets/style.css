@@ -632,14 +632,15 @@ body{ margin:0; overflow-x:hidden; }
 }
 
 /* 1 張：置中 + 盡量吃滿卡片，但上限 820 */
+/* 單張照片：置中 + 更接近框寬 */
 .feedPhotos[data-count="1"]{
   justify-content: center;
 }
 
 .feedPhotos[data-count="1"] .ph{
-  flex: 0 1 820px;              /* 上限 820 的「彈性寬」 */
-  width: min(100%, 820px);       /* 真正控制寬度（比 min() 放在 flex-basis 穩） */
-  max-width: 820px;
+  flex: none;
+  width: min(100%, 900px);  /* ← 這裡改 900（或 920） */
+  max-width: 900px;
 }
 
 /* 讓它像「影院螢幕」長方形：高度一致、可裁切 */
