@@ -120,8 +120,9 @@ async function initNicknameUI() {
   elBtn.addEventListener("click", async () => {
     try {
       const nick = elIn.value.trim();
-      const outRes = await userSetNickname(nick); 
-      elCur.textContent = `目前暱稱：${out.nickname}`;
+      const outRes = await userSetNickname(nick);
+      const newNick = outRes?.profile?.nickname || outRes?.nickname || nick;
+      elCur.textContent = `目前暱稱：${newNick}`;
       alert("暱稱已更新！");
     } catch (e) {
       alert("更新失敗：" + e.message);
