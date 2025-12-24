@@ -913,4 +913,11 @@ html::before{
   .feedPhotos{ max-width: 420px; }
 }
 
-
+/* ✅ Hall：恢復安全寬度，避免右側按鈕被 overflow 裁切 */
+#postForm,
+#postList {
+  width: min(980px, calc(100vw - 48px)); /* 48px = 左右各保留 24px 安全邊 */
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
