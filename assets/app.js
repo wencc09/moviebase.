@@ -12,12 +12,23 @@ const CONFIG = {
 
 const MB = {
   state: {
-    mode: "unknown", // "unknown" | "guest" | "user"
-    user: null,      // {sub,email,name,picture}
+    mode: "unknown",
+    user: null,
+    profile: null, // ✅ 新增這行
+    // ...
   }
 };
 
+
 const $ = (q, root = document) => root.querySelector(q);
+
+
+function getDisplayName_() {
+  const nick = (MB.state.profile && MB.state.profile.nickname) ? String(MB.state.profile.nickname).trim() : "";
+  if (nick) return nick;
+  const gname = (MB.state.user && MB.state.user.name) ? String(MB.state.user.name).trim() : "";
+  return gname || "使用者";
+}
 
 /* =========================
    Toast
