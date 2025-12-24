@@ -1253,3 +1253,69 @@ document.addEventListener("DOMContentLoaded", () => {
   try { initNicknameUI(); } catch (e) {}
 });
 
+async function mbGetProfile_() {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) return null;
+  return await apiPOST({ action: "get_profile", idToken });
+}
+
+async function mbSetNickname_(nickname) {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) throw new Error("missing id_token");
+  return await apiPOST({ action: "set_nickname", idToken, nickname });
+}
+
+function initNicknameUI_() {
+  const card = document.getElementById("nickCard");
+  if (!card) return; // 不是 account 頁就跳過
+
+  const statusEl = document.getElementById("nickStatus");
+  const input = document.getElementById("nicknameInput");
+  const btn = document.getElementById("btnSaveNickname");
+
+  async function render() {
+    // 只有登入才顯示
+    const idToken = localStorage.getItem("id_token");
+    if (!idToken || (window.MB && MB.state && MB.state.mode !== "user")) {
+      card.style.display = "none";
+      return;
+    }
+    card.style.display = "block";
+    statusEl.textContent = "讀取中...";
+
+    try {
+      const data = await mbGetProfile_();
+      if (!data || !data.ok) throw new Error((data && data.error) || "get_profile failed");
+
+      const nn = (data.profile.nickname || "").trim();
+      statusEl.textContent = nn ? `目前暱稱：${nn}` : "目前暱稱：尚未設定";
+      input.value = nn;
+    } catch (e) {
+      statusEl.textContent = "讀取暱稱失敗：" + String(e.message || e);
+    }
+  }
+
+  btn?.addEventListener("click", async () => {
+    const nn = (input.value || "").trim();
+    if (!nn) return toast("請輸入暱稱");
+    btn.disabled = true;
+    try {
+      const out = await mbSetNickname_(nn);
+      if (!out.ok) throw new Error(out.error || "set_nickname failed");
+      toast("已儲存暱稱");
+      await render();
+    } catch (e) {
+      toast("儲存失敗：" + String(e.message || e));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // 初次載入 + 登入狀態變動時更新
+  render();
+  window.addEventListener("mb:auth", render);
+}
+
+document.addEventListener("DOMContentLoaded", initNicknameUI_);
+
+
