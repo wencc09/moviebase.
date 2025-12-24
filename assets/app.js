@@ -127,7 +127,10 @@ async function initNicknameUI() {
 
     // ✅ 更新本機 profile（讓畫面上的名字立刻變）
     MB.state.profile = { ...(MB.state.profile || {}), ...(prof || {}), nickname: nn };
-
+    // ✅ 加在「這裡」<<<<
+    document.documentElement.setAttribute("data-user-name", nn);
+    window.dispatchEvent(new Event("mb:auth"));
+     
     elCur.textContent = nn ? `目前暱稱：${nn}` : "目前暱稱：未設定";
 
     // ✅ 讓右上角顯示名也更新（要搭配下面第2點 renderAuthUI 修改）
@@ -903,7 +906,8 @@ window.addEventListener("load", boot);
 }
 
 // ✅ 加在 refresh() 後面這裡（同一個 IIFE 裡）
-window.MB_refreshPosts = (force = true) => refresh(!!force);
+window.MB_refreshPosts = (force = true) => refresh(force);
+
 
   // Mount
   window.addEventListener("load", async () => {
