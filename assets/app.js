@@ -123,6 +123,7 @@ async function initNicknameUI() {
       const outRes = await userSetNickname(nick);
       const newNick = outRes?.profile?.nickname || outRes?.nickname || nick;
       elCur.textContent = `目前暱稱：${newNick}`;
+
       alert("暱稱已更新！");
     } catch (e) {
       alert("更新失敗：" + e.message);
