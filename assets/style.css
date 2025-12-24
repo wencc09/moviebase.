@@ -631,6 +631,7 @@ body{ margin:0; overflow-x:hidden; }
 .feedPhotos[data-count="1"] .ph{
   flex: 0 0 min(100%, 820px);
 }
+
     /* ✅ 單張最大寬度（想再寬就調 760） */
 
 
