@@ -118,17 +118,30 @@ async function initNicknameUI() {
   }
 
   elBtn.addEventListener("click", async () => {
-    try {
-      const nick = elIn.value.trim();
-      const outRes = await userSetNickname(nick);
-      const newNick = outRes?.profile?.nickname || outRes?.nickname || nick;
-      elCur.textContent = `目前暱稱：${newNick}`;
+  try {
+    const nick = elIn.value.trim();
+    const outRes = await userSetNickname(nick);
 
-      alert("暱稱已更新！");
-    } catch (e) {
-      alert("更新失敗：" + e.message);
-    }
-  });
+    const prof = outRes.profile || outRes.user || outRes; // 容錯
+    const nn = (prof?.nickname || outRes?.nickname || nick || "").trim();
+
+    // ✅ 更新本機 profile（讓畫面上的名字立刻變）
+    MB.state.profile = { ...(MB.state.profile || {}), ...(prof || {}), nickname: nn };
+
+    elCur.textContent = nn ? `目前暱稱：${nn}` : "目前暱稱：未設定";
+
+    // ✅ 讓右上角顯示名也更新（要搭配下面第2點 renderAuthUI 修改）
+    renderAuthUI();
+
+    // ✅ 立刻重載貼文（舊貼文作者名也會跟著變，前提後端 list_posts 會回新暱稱）
+    window.MB_refreshPosts?.(true);
+
+    alert("暱稱已更新！");
+  } catch (e) {
+    alert("更新失敗：" + e.message);
+  }
+});
+;
 }
 
 
@@ -878,18 +891,19 @@ window.addEventListener("load", boot);
   let __cardsCache = [];
   let __loadedOnce = false;
 
-  async function refresh(forceReload = true) {
-     const q = $("postSearch")?.value || "";
-   
-     if (forceReload) {
-       ALL_CARDS = await loadCards();      // ✅ 只有需要時才打後端
-     }
-   
-     render(ALL_CARDS, q);                // ✅ 搜尋只用快取過濾
-     applyRoleLock();
-   }
+ async function refresh(forceReload = true) {
+  const q = $("postSearch")?.value || "";
 
+  if (forceReload) {
+    ALL_CARDS = await loadCards();  // ✅ 只有需要時才打後端
+  }
 
+  render(ALL_CARDS, q);            // ✅ 搜尋只用快取過濾
+  applyRoleLock();
+}
+
+// ✅ 加在 refresh() 後面這裡（同一個 IIFE 裡）
+window.MB_refreshPosts = (force = true) => refresh(!!force);
 
   // Mount
   window.addEventListener("load", async () => {
