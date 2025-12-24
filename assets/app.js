@@ -56,12 +56,8 @@ async function apiPOST(payload) {
 }
 
 async function apiGET(params) {
-  // 保留 apiGET 名稱，但實際全部改用 POST，配合後端 doPost(e)
-  return apiFetch(CONFIG.GAS_WEBAPP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params || {}),
-  });
+  // 保留 apiGET 名稱，但實際上走 POST，避免任何地方再用 GET 出事
+  return apiPOST(params || {});
 }
 
 
@@ -700,18 +696,21 @@ window.addEventListener("load", boot);
 
   let ALL_CARDS = []; // ✅ 貼文快取：只要後端載入一次，搜尋就用它
   async function loadCards() {
-  const idToken = localStorage.getItem("id_token");
-
-  const data = idToken
-    ? await apiPOST({ action: "list_posts", idToken })
-    : await apiGET({ action: "list_posts" });
-
-  if (!data.ok) throw new Error(data.error || "list_posts failed");
-
-  const cards = (data.rows || []).map(toCard);
-  cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
-  return cards;
-}
+     const idToken = localStorage.getItem("id_token") || "";
+   
+     // ✅ 不管登入或訪客，一律走 POST（後端只支援 doPost）
+     const payload = idToken
+       ? { action: "list_posts", idToken }
+       : { action: "list_posts" };
+   
+     const data = await apiPOST(payload);
+   
+     // 如果後端回錯，直接丟出給外層顯示（你原本就有 toast / error 顯示）
+     if (!data?.ok) throw new Error(data?.error || "list_posts failed");
+   
+     // ✅ 這裡維持你原本的渲染流程（看你原本怎麼用 data.rows）
+     renderPosts_(data.rows); // ← 這行請保留你原本的渲染函式名稱
+   }
 
 
   async function createCardFromForm() {
