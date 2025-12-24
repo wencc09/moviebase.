@@ -146,6 +146,11 @@ async function verifyMe() {
   return data.user;
 }
 
+function displayName_(user, profile) {
+  const nick = profile?.nickname && String(profile.nickname).trim();
+  return nick || user?.name || user?.email || "User";
+}
+
 
 function jsonp(url, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
@@ -1339,6 +1344,15 @@ function initNicknameUI_() {
       btn.disabled = false;
     }
   });
+
+   MB.state.profile = out.profile || out;   // out 是後端回來的資料
+// 重新把上方顯示名更新一次
+   const topNameEl =
+     document.getElementById("topUserName") ||
+     document.getElementById("meName") ||
+     document.querySelector("[data-user-name]");
+   if (topNameEl) topNameEl.textContent = displayName_(MB.state.user, MB.state.profile);
+
 
   // 初次載入 + 登入狀態變動時更新
   render();
