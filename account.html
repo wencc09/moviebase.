@@ -112,6 +112,24 @@
       });
     }
 
+  <section class="card" id="nickCard" style="margin-top:12px; display:none;">
+    <div class="cardTitle">暱稱設定</div>
+    <div class="muted" id="nickStatus" style="margin:8px 0;">讀取中...</div>
+  
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <input id="nicknameInput" type="text" maxlength="30"
+        placeholder="輸入你的暱稱（最多30字）"
+        style="flex:1; min-width:220px;"
+      />
+      <button class="btn" id="btnSaveNickname" type="button">儲存</button>
+    </div>
+  
+    <div class="muted" style="margin-top:8px;">
+      ※ 暱稱會用於貼文/留言顯示（之後我們再接到貼文牆）
+    </div>
+  </section>
+
+
     window.addEventListener("load", async ()=>{
       await waitForMBReady();
 
