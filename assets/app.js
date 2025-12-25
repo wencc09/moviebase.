@@ -1381,4 +1381,39 @@ function initNicknameUI_() {
 
 document.addEventListener("DOMContentLoaded", initNicknameUI_);
 
+// ✅ 保險：讓留言 Modal 一定可以關 + 預設關閉
+(function wireCommentModalFix(){
+  const modal = document.getElementById("commentModal");
+  if(!modal) return;
+
+  const close = ()=>{
+    modal.setAttribute("aria-hidden", "true");
+  };
+  const open = ()=>{
+    modal.setAttribute("aria-hidden", "false");
+  };
+
+  // 預設一律先關掉（避免突然跳出卡住）
+  close();
+
+  // 點背景或任何 data-close 都能關
+  modal.querySelectorAll("[data-close], .mbModalBackdrop").forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      // 如果點的是卡片內容，不關
+      const card = modal.querySelector(".mbModalCard");
+      if(card && card.contains(e.target) && !e.target.matches("[data-close]")) return;
+      close();
+    });
+  });
+
+  // ESC 關閉
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape") close();
+  });
+
+  // 給你除錯用：Console 可直接呼叫
+  window.MB_closeCommentModal = close;
+  window.MB_openCommentModal = open;
+})();
+
 
