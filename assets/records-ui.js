@@ -20,7 +20,13 @@
 
   async function api(action, payload = {}){
      const url = (window.CONFIG && CONFIG.GAS_WEBAPP_URL) ? CONFIG.GAS_WEBAPP_URL : (window.SCRIPT_URL || "");
-     const idToken = (window.MB && MB.state && (MB.state.idToken || MB.state.id_token)) || localStorage.getItem("idToken") || "";
+     const st = (window.MB && MB.state) ? MB.state : {};
+     const idToken =
+        st.idToken || st.id_token || st.credential ||
+        (st.user && (st.user.idToken || st.user.id_token || st.user.credential)) ||
+        localStorage.getItem("idToken") ||
+        localStorage.getItem("mb_idToken") || "";
+
      if(!idToken) throw new Error("missing idToken");
    
      const res = await fetch(url, {
