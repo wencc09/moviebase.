@@ -151,18 +151,11 @@ async function initNicknameUI() {
 }
 
 
-async function verifyMe(idTokenFromLogin){
-  const idToken =
-    idTokenFromLogin ||
-    MB?.state?.idToken ||
-    localStorage.getItem("idToken") ||
-    localStorage.getItem("id_token") || "";
+async function verifyMe() {
+  const idToken = localStorage.getItem("id_token");
+  if (!idToken) return null;
 
-  if(!idToken) throw new Error("missing idToken");
-
-  return await apiCallToGAS("me", { idToken }); // 你原本怎麼打就怎麼打
-}
-
+  const data = await apiPOST({ action: "me", idToken });
   if (!data.ok) {
     // ✅ token 壞掉就清掉
     localStorage.removeItem("id_token");
@@ -413,38 +406,37 @@ function initGoogle(retry = 0) {
   google.accounts.id.initialize({
      client_id: CONFIG.GOOGLE_CLIENT_ID,
      callback: async (resp) => {
-        try {
-          const idToken = resp?.credential;
-          if (!idToken) throw new Error("missing credential from Google");
-      
-          // ✅ 先存 localStorage（最穩）
-          localStorage.setItem("idToken", idToken);
-          localStorage.setItem("id_token", idToken); // 兼容舊key
-      
-          // ✅ 先暫放（就算被 setModeUser 洗掉，我們等下會再補回）
-          MB.state.idToken = idToken;
-      
-          const user = await verifyMe(idToken); // ✅ 建議把 token 直接傳入
-          setModeUser(user);
-      
-          // ✅ 關鍵：setModeUser 可能會重建 MB.state，所以這行一定要在後面
-          MB.state.idToken = idToken;
-      
-          closeLoginModal();
-          toast("登入成功");
-          goAfterAuthIfNeeded();
-        } catch (e) {
-          console.error(e);
-          toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
-      
-          localStorage.removeItem("idToken");
-          localStorage.removeItem("id_token");
-          if (MB?.state) MB.state.idToken = "";
-      
-          setModeGuest();
-        }
-      }
+       try {
+         const idToken = resp?.credential;
+         if (!idToken) throw new Error("missing credential from Google");
+   
+         // ✅ 存起來（Records / 後端都靠這個）
+         MB.state.idToken = resp.credential;
+         localStorage.setItem("idToken", resp.credential);
 
+   
+         // （可選）兼容舊key：如果你其他地方曾經用過 id_token
+         localStorage.setItem("id_token", idToken);
+   
+         const user = await verifyMe();
+         setModeUser(user);
+   
+         closeLoginModal();
+         toast("登入成功");
+         goAfterAuthIfNeeded();
+       } catch (e) {
+         console.error(e);
+         toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
+   
+         // ✅ 失敗要把兩種 key 都清掉（避免假登入）
+         localStorage.removeItem("idToken");
+         localStorage.removeItem("id_token");
+         if (MB?.state) MB.state.idToken = "";
+   
+         setModeGuest();
+       }
+     }
+   });
 
 
   const gsi = $("#gsiBtn");
