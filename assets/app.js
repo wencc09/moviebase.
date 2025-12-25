@@ -66,16 +66,17 @@ async function apiPOST(payload) {
   });
 }
 async function userGet() {
-  const idToken = localStorage.getItem("id_token");
+  const idToken = getIdToken_();
   if (!idToken) throw new Error("not logged in");
-  return await apiPOST({ action: "user_get", idToken });
+  return await apiPOST({ action: "get_profile", idToken });
 }
 
 async function userSetNickname(nickname) {
-  const idToken = localStorage.getItem("id_token");
+  const idToken = getIdToken_();
   if (!idToken) throw new Error("not logged in");
   return await apiPOST({ action: "user_set_nickname", idToken, nickname });
 }
+
 
 async function loadProfile_() {
   const idToken = MB.state?.idToken || localStorage.getItem("id_token");
@@ -131,7 +132,9 @@ async function initNicknameUI() {
     const disp = displayName_(MB.state.user, MB.state.profile);
 
     document.documentElement.setAttribute("data-user-name", disp);
-    if (name) name.textContent = disp;
+    const nameEl = document.getElementById("authName");
+    if (nameEl) nameEl.textContent = disp;
+     
 
      
     elCur.textContent = nn ? `目前暱稱：${nn}` : "目前暱稱：未設定";
@@ -151,31 +154,42 @@ async function initNicknameUI() {
 }
 
 
-async function verifyMe(idTokenFromLogin){
-  const idToken =
-    idTokenFromLogin ||
+function getIdToken_() {
+  return (
     MB?.state?.idToken ||
     localStorage.getItem("idToken") ||
-    localStorage.getItem("id_token") || "";
-
-  if(!idToken) throw new Error("missing idToken");
-
-  return await apiCallToGAS("me", { idToken }); // 你原本怎麼打就怎麼打
+    localStorage.getItem("id_token") ||
+    ""
+  );
 }
 
-  if (!data.ok) {
-    // ✅ token 壞掉就清掉
-    localStorage.removeItem("id_token");
-    throw new Error(data.error || "me failed");
+function clearIdToken_() {
+  localStorage.removeItem("idToken");
+  localStorage.removeItem("id_token");
+  if (MB?.state) MB.state.idToken = "";
+}
+
+async function verifyMe(idTokenFromLogin) {
+  const idToken = idTokenFromLogin || getIdToken_();
+  if (!idToken) throw new Error("missing idToken");
+
+  const data = await apiPOST({ action: "me", idToken });
+  if (!data || !data.ok) {
+    clearIdToken_();
+    throw new Error(data?.error || "me failed");
   }
-  // ✅ Step2：登入成功後立刻把 profile 抓回來
-   loadProfile_()
-     .then(p => { MB.state.profile = p; })
-     .catch(() => { MB.state.profile = null; });
-   
+
+  // 登入成功：順便抓 profile（失敗也不擋登入）
+  try { await loadProfile_(); } catch (_) {}
 
   return data.user;
 }
+
+function displayName_(user, profile) {
+  const nick = profile?.nickname && String(profile.nickname).trim();
+  return nick || user?.name || user?.email || "User";
+}
+
 
 function displayName_(user, profile) {
   const nick = profile?.nickname && String(profile.nickname).trim();
@@ -261,7 +275,7 @@ function goAfterAuthIfNeeded() {
 function setModeGuest() {
   MB.state.mode = "guest";
   MB.state.user = null;
-  localStorage.removeItem("id_token");
+  clearIdToken_();
   localStorage.setItem("mode", "guest");
   renderAuthUI();
   window.dispatchEvent(new Event("mb:auth"));
@@ -486,7 +500,7 @@ async function boot() {
   const logoutHandler = () => {
     try {
       if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-          localStorage.removeItem("idToken");
+          clearIdToken_();
           if (MB?.state) MB.state.idToken = "";
 
     } catch (_) {}
@@ -515,8 +529,7 @@ async function boot() {
       else setModeGuest();
     } catch (e) {
       console.error(e);
-      localStorage.removeItem("id_token");
-      localStorage.removeItem("id_token");
+      clearIdToken_();
 if (MB?.state) MB.state.idToken = "";
 // ✅ 加這行
       setModeGuest();
