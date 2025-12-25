@@ -128,8 +128,11 @@ async function initNicknameUI() {
     // ✅ 更新本機 profile（讓畫面上的名字立刻變）
     MB.state.profile = { ...(MB.state.profile || {}), ...(prof || {}), nickname: nn };
     // ✅ 加在「這裡」<<<<
-    document.documentElement.setAttribute("data-user-name", nn);
-    window.dispatchEvent(new Event("mb:auth"));
+    const disp = displayName_(MB.state.user, MB.state.profile);
+
+    document.documentElement.setAttribute("data-user-name", disp);
+    if (name) name.textContent = disp;
+
      
     elCur.textContent = nn ? `目前暱稱：${nn}` : "目前暱稱：未設定";
 
@@ -845,18 +848,21 @@ window.addEventListener("load", boot);
 
   let ALL_CARDS = []; // ✅ 貼文快取：只要後端載入一次，搜尋就用它
   async function loadCards() {
-  const idToken = localStorage.getItem("id_token");
-
-  const data = idToken
-    ? await apiPOST({ action: "list_posts", idToken })
-    : await apiGET({ action: "list_posts" });
-
-  if (!data.ok) throw new Error(data.error || "list_posts failed");
-
-  const cards = (data.rows || []).map(toCard);
-  cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
-  return cards;
-}
+     const idToken = localStorage.getItem("id_token");
+   
+     // ✅ 永遠用 POST，訪客就不要帶 idToken
+     const payload = idToken
+       ? { action: "list_posts", idToken }
+       : { action: "list_posts" };
+   
+     const data = await apiPOST(payload);
+     if (!data.ok) throw new Error(data.error || "list_posts failed");
+   
+     const cards = (data.rows || []).map(toCard);
+     cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+     return cards;
+   }
+   
 
 
 
@@ -892,8 +898,7 @@ window.addEventListener("load", boot);
     return data.id;
   }
 
-  let __cardsCache = [];
-  let __loadedOnce = false;
+ 
 
  async function refresh(forceReload = true) {
   const q = $("postSearch")?.value || "";
@@ -918,7 +923,7 @@ window.MB_refreshPosts = (force = true) => refresh(force);
     warmupBackend();
     try {
       applyRoleLock();
-      await refresh({ force: true });
+      await refresh(true);
     } catch (e) {
       console.error(e);
       toast(`貼文讀取失敗：${String(e.message || e)}`.slice(0, 120));
@@ -975,7 +980,7 @@ window.MB_refreshPosts = (force = true) => refresh(force);
 
       $("postSearch")?.addEventListener("input", debounce(() => {
       const q = $("postSearch")?.value || "";
-      render(__cardsCache, q);
+      render(ALL_CARDS, q);
       applyRoleLock();
     }, 180));
 
@@ -1039,8 +1044,9 @@ window.MB_refreshPosts = (force = true) => refresh(force);
            commentCount: 0,
          };
    
-         __cardsCache.unshift(pendingCard);
-         render(__cardsCache, $("postSearch")?.value || "");
+         ALL_CARDS.unshift(pendingCard);
+         render(ALL_CARDS, $("postSearch")?.value || "");
+
          applyRoleLock();
    
          try {
@@ -1076,8 +1082,8 @@ window.MB_refreshPosts = (force = true) => refresh(force);
          } catch (err) {
            console.error(err);
            // 發佈失敗：把 pending 卡移除
-           __cardsCache = __cardsCache.filter(x => x.id !== pendingId);
-           render(__cardsCache, $("postSearch")?.value || "");
+           ALL_CARDS = ALL_CARDS.filter(x => x.id !== pendingId);
+           render(ALL_CARDS, $("postSearch")?.value || "");
            applyRoleLock();
    
            toast(`發布失敗：${String(err.message || err)}`.slice(0, 140));
