@@ -169,7 +169,10 @@ async function verifyMe(idTokenFromLogin){
     throw new Error(data.error || "me failed");
   }
   // ✅ Step2：登入成功後立刻把 profile 抓回來
-  try { await loadProfile_(); } catch (_) { MB.state.profile = null; }
+   loadProfile_()
+     .then(p => { MB.state.profile = p; })
+     .catch(() => { MB.state.profile = null; });
+   
 
   return data.user;
 }
@@ -399,11 +402,12 @@ function initThemeToggle() {
   }, true);
 }
 
+
+
 /* =========================
    Google Login (robust init)
 ========================= */
 function initGoogle(retry = 0) {
-  // GIS script 用 async 載入，常常 boot 時還沒 ready，這裡重試
   if (!window.google || !google.accounts?.id) {
     if (retry < 80) return setTimeout(() => initGoogle(retry + 1), 100);
     console.warn("Google SDK not ready (timeout)");
@@ -411,48 +415,48 @@ function initGoogle(retry = 0) {
   }
 
   google.accounts.id.initialize({
-     client_id: CONFIG.GOOGLE_CLIENT_ID,
-     callback: async (resp) => {
-        try {
-          const idToken = resp?.credential;
-          if (!idToken) throw new Error("missing credential from Google");
-      
-          // ✅ 先存 localStorage（最穩）
-          localStorage.setItem("idToken", idToken);
-          localStorage.setItem("id_token", idToken); // 兼容舊key
-      
-          // ✅ 先暫放（就算被 setModeUser 洗掉，我們等下會再補回）
-          MB.state.idToken = idToken;
-      
-          const user = await verifyMe(idToken); // ✅ 建議把 token 直接傳入
-          setModeUser(user);
-      
-          // ✅ 關鍵：setModeUser 可能會重建 MB.state，所以這行一定要在後面
-          MB.state.idToken = idToken;
-      
-          closeLoginModal();
-          toast("登入成功");
-          goAfterAuthIfNeeded();
-        } catch (e) {
-          console.error(e);
-          toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
-      
-          localStorage.removeItem("idToken");
-          localStorage.removeItem("id_token");
-          if (MB?.state) MB.state.idToken = "";
-      
-          setModeGuest();
-        }
+    client_id: CONFIG.GOOGLE_CLIENT_ID,
+    callback: async (resp) => {
+      try {
+        // ✅ 1) 正確拿 token
+        const idToken = resp?.credential || "";
+        if (!idToken) throw new Error("no credential from GIS");
+
+        // ✅ 2) 統一存 token（records-ui / verifyMe 會讀這個）
+        MB.state.idToken = idToken;
+        localStorage.setItem("idToken", idToken);
+        //（可選）兼容你以前用過的 key
+        localStorage.setItem("id_token", idToken);
+
+        // ✅ 3) 跟後端確認身分
+        const user = await verifyMe();
+        setModeUser(user);
+
+        closeLoginModal();
+        toast("登入成功");
+        goAfterAuthIfNeeded();
+      } catch (e) {
+        console.error(e);
+        toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
+
+        // ✅ 清掉 token
+        localStorage.removeItem("idToken");
+        localStorage.removeItem("id_token");
+        if (MB?.state) MB.state.idToken = "";
+
+
+        setModeGuest();
       }
+    }
+  });
 
-
-
-  const gsi = $("#gsiBtn");
+  const gsi = document.getElementById("gsiBtn");
   if (gsi) {
     gsi.innerHTML = "";
     google.accounts.id.renderButton(gsi, { theme: "outline", size: "large" });
   }
 }
+
 
 /* =========================
    Boot
@@ -511,7 +515,10 @@ async function boot() {
       else setModeGuest();
     } catch (e) {
       console.error(e);
-      localStorage.removeItem("id_token");   // ✅ 加這行
+      localStorage.removeItem("id_token");
+      localStorage.removeItem("id_token");
+if (MB?.state) MB.state.idToken = "";
+// ✅ 加這行
       setModeGuest();
     }
   }
