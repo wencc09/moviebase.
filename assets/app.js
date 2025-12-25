@@ -859,6 +859,7 @@ window.addEventListener("load", boot);
 }
 
 
+
   async function createCardFromForm() {
     const title = ($("postTitle")?.value || "").trim();
     const kind = ($("postKind")?.value || "movie").trim();
@@ -1071,7 +1072,7 @@ window.MB_refreshPosts = (force = true) => refresh(force);
            toast("✅ 已發布（同步中…）");
    
            // 後端完成後強制刷新一次，把 pending 換成正式（含 Drive URL、時間等）
-           await refresh({ force: true });
+           aawait refresh(true);
          } catch (err) {
            console.error(err);
            // 發佈失敗：把 pending 卡移除
