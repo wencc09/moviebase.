@@ -1072,7 +1072,7 @@ window.MB_refreshPosts = (force = true) => refresh(force);
            toast("✅ 已發布（同步中…）");
    
            // 後端完成後強制刷新一次，把 pending 換成正式（含 Drive URL、時間等）
-           aawait refresh(true);
+           await refresh(true);
          } catch (err) {
            console.error(err);
            // 發佈失敗：把 pending 卡移除
