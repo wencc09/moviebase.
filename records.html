@@ -8,6 +8,8 @@
   <!-- ✅ CSS 順序：theme → style -->
   <link rel="stylesheet" href="./assets/theme.css">
   <link rel="stylesheet" href="./assets/style.css" />
+  <link rel="stylesheet" href="./assets/records.css?v=20251225_1">
+
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -45,36 +47,172 @@
 
   <div class="wrap">
     <div class="grid">
-      <section class="card">
-        <h2>我的紀錄</h2>
-        <div class="muted">
-          這頁會依你規格做出三大區塊：<br>
-          ✅ 已觀看（最大區域 + 大方塊，顏色區分影集/動漫/電影）<br>
-          ✅ 觀看中（較小區域 + 大方塊）<br>
-          ✅ 未觀看（觀看清單：小方塊，只顯示片名）<br><br>
-          點進每個作品，會進入「該作品的日記」，能看到多筆備忘錄、不同集數/秒數的心路歷程。
+      <!-- ✅ RECORDS 主卡：塞入模板 -->
+      <section class="card recordsShell">
+  
+        <!-- Header -->
+        <div class="recordsHead">
+          <div class="recordsTitle">
+            <div class="recordsEmoji">🎬</div>
+            <div>
+              <div class="recordsH2">觀影紀錄</div>
+              <div class="muted">新增／編輯／刪除、全站推薦、我的類別統計</div>
+            </div>
+          </div>
+  
+          <div class="recordsActions">
+            <button id="recRecommendBtn" class="btn">✨ 推薦</button>
+            <button id="recAnalysisBtn" class="btn">📊 統計</button>
+            <button id="recAddBtn" class="btn primary">＋ 新增</button>
+  
+            <div id="recUserInfo" class="recUserInfo" style="display:none;">
+              <img id="recUserImg" class="recAvatar" alt="user">
+              <button id="recLogoutBtn" class="btn danger" type="button">登出</button>
+            </div>
+          </div>
         </div>
-
+  
         <div class="hr"></div>
-        <button class="btn primary" id="btnAddRecord" type="button">＋ 新增紀錄（下一步做）</button>
-        <div class="muted" style="margin-top:10px;">
-          你現在先不用管資料，先把分頁架構與 UI 定好。<br>
-          第 2 步我們才會把「新增/卡片/日記」全部做出來並接到試算表。
+  
+        <!-- Login overlay（只覆蓋這張 card，不會蓋整站） -->
+        <div id="recLoginOverlay" class="recOverlay" style="display:none;">
+          <div class="recOverlayCard">
+            <div class="recordsH2">🔒 觀影紀錄需要登入</div>
+            <div class="muted" style="margin-top:6px">請先登入 Google 才能使用（訪客不可用）</div>
+            <button id="recLoginBtn" class="btn primary" style="margin-top:14px">前往登入</button>
+          </div>
         </div>
-      </section>
-
-      <section class="card">
-        <h2>登入檢查</h2>
-        <div class="muted" id="guardText">檢查中…</div>
-        <div class="hr"></div>
-        <div class="muted">
-          規則：訪客點進來要跳出「請先登入！」（你要求）<br>
-          我們已先在前端擋住；第 2 步會讓 Apps Script 後端也擋（更安全）。
+  
+        <!-- Recommend -->
+        <div id="recRecommendArea" class="recordsArea" style="display:none;">
+          <div class="areaHead">🔥 全站最高評分推薦</div>
+          <div id="recRecommendContent" class="recGrid"></div>
         </div>
+  
+        <!-- Analysis -->
+        <div id="recAnalysisArea" class="recordsArea" style="display:none;">
+          <div class="areaHead">📊 我的類別統計</div>
+          <div class="analysisRow">
+            <div id="recAnalysisRecText" class="muted"></div>
+            <div class="analysisChartWrap">
+              <canvas id="recGenrePieChart"></canvas>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Lists -->
+        <div class="listsWrap">
+          <div class="listBlock">
+            <div class="listHead">👀 觀看中</div>
+            <div id="recWatchingList" class="cardsGrid"></div>
+          </div>
+  
+          <div class="listBlock">
+            <div class="listHead">🕒 未觀看</div>
+            <div id="recNotList" class="cardsGrid"></div>
+          </div>
+  
+          <div class="listBlock">
+            <div class="listHead">✅ 已觀看</div>
+            <div id="recDoneList" class="cardsGrid"></div>
+          </div>
+        </div>
+  
+        <!-- 狀態文字（給你驗證用） -->
+        <div class="muted" id="recGuardText" style="margin-top:10px;"></div>
       </section>
     </div>
   </div>
 
+  <!-- ====== TYPE MODAL ====== -->
+  <div id="recTypeModal" class="mbModal" style="display:none;">
+    <div class="mbBackdrop" data-close="1"></div>
+    <div class="mbPanel">
+      <h3 style="margin:0;">新增紀錄</h3>
+      <div class="muted" style="margin-top:6px;">請先選擇作品類型</div>
+  
+      <div class="twoColBtns">
+        <button id="recSeriesBtn" class="btn">📺 影集 / 動漫</button>
+        <button id="recMovieBtn" class="btn">🎬 電影</button>
+      </div>
+  
+      <div class="hr"></div>
+      <button class="btn" data-close="1" type="button">取消</button>
+    </div>
+  </div>
+  
+  <!-- ====== FORM MODAL ====== -->
+  <div id="recFormModal" class="mbModal" style="display:none;">
+    <div class="mbBackdrop" data-close="1"></div>
+    <div class="mbPanel mbPanelWide">
+      <div class="formTop">
+        <h3 style="margin:0;">紀錄表單</h3>
+        <button class="btn" data-close="1" type="button">關閉</button>
+      </div>
+  
+      <input id="recEditId" type="hidden">
+  
+      <label class="field">
+        <div class="label">作品名稱</div>
+        <input id="recTitleInput" class="input" placeholder="例如：進擊的巨人 / Inception">
+      </label>
+  
+      <label class="field">
+        <div class="label">類別</div>
+        <select id="recGenreSelect" class="input">
+          <option value="劇情片">劇情片</option>
+          <option value="喜劇片">喜劇片</option>
+          <option value="動作片">動作片</option>
+          <option value="科幻片">科幻片</option>
+          <option value="恐怖片">恐怖片</option>
+          <option value="愛情片">愛情片</option>
+          <option value="動畫">動畫</option>
+          <option value="紀錄片">紀錄片</option>
+          <option value="綜藝">綜藝</option>
+          <option value="旅遊">旅遊</option>
+          <option value="醫療">醫療</option>
+          <option value="律政">律政</option>
+          <option value="其他">其他</option>
+        </select>
+      </label>
+  
+      <label class="field">
+        <div class="label">觀看日期</div>
+        <input id="recDateInput" class="input" type="date">
+      </label>
+  
+      <label id="recEpArea" class="field">
+        <div class="label">集數（影集用）</div>
+        <input id="recEpInput" class="input" type="number" min="0" placeholder="例如：12">
+      </label>
+  
+      <div class="field">
+        <div class="label">評分</div>
+        <div id="recStarContainer" class="stars"></div>
+      </div>
+  
+      <label class="field">
+        <div class="label">備註</div>
+        <textarea id="recNoteInput" class="input" rows="3" placeholder="心得/吐槽/想記的事"></textarea>
+      </label>
+  
+      <label class="field">
+        <div class="label">狀態</div>
+        <select id="recStatusSelect" class="input">
+          <option value="watching">觀看中</option>
+          <option value="not">未觀看</option>
+          <option value="done">已觀看</option>
+        </select>
+      </label>
+  
+      <div class="formBtns">
+        <button id="recDelBtn" class="btn danger" type="button">刪除</button>
+        <button id="recSaveBtn" class="btn primary" type="button">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  
   <div class="modal" id="loginModal">
     <div class="modalBox fadeIn">
       <h3>請先登入！</h3>
@@ -89,41 +227,37 @@
   <div class="toast" id="toast"></div>
 
   <!-- ✅ defer：讓 MB/app.js 先初始化完成 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+
+  <!-- ✅ defer：讓 MB/app.js 先初始化完成 -->
   <script src="./assets/app.js" defer></script>
+  
+  <!-- ✅ 觀影紀錄 UI（只做前端模板與互動，先用 localStorage 模擬資料） -->
+  <script src="./assets/records-ui.js?v=20251225_1" defer></script>
+
 
   <script>
-    function waitForMBReady(timeoutMs = 6000){
-      const start = Date.now();
-      return new Promise((resolve)=>{
-        const tick = ()=>{
-          if(window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
-          if(Date.now() - start > timeoutMs) return resolve(false);
-          setTimeout(tick, 80);
-        };
-        tick();
-      });
-    }
-
-    window.addEventListener("load", async ()=>{
-      await waitForMBReady();
-
-      // ✅ records 頁：訪客必須被擋住並彈登入
-      const ok = MB_requireLogin("我的紀錄");
-      const t = document.getElementById("guardText");
-      t.textContent = ok ? "✅ 已登入，可以開始做紀錄介面（下一步）"
-                         : "🔒 訪客模式：已阻擋（符合規格）";
-
-      document.getElementById("btnAddRecord").addEventListener("click", ()=>{
-        if(!MB_requireLogin("新增紀錄")) return;
-        toast("下一步才會做：三種類型新增表單（影集/電影/電影院）");
-      });
-
-      // ✅ 你原本 btnGuest 沒有導向：補上（訪客去 hall）
-      document.getElementById("btnGuest")?.addEventListener("click", ()=>{
-        localStorage.setItem("mode","guest");
-        location.href = "hall.html?mode=guest";
-      });
+  function waitForMBReady(timeoutMs = 8000){
+    const start = Date.now();
+    return new Promise((resolve)=>{
+      const tick = ()=>{
+        if(window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
+        if(Date.now() - start > timeoutMs) return resolve(false);
+        setTimeout(tick, 80);
+      };
+      tick();
     });
-  </script>
+  }
+
+  window.addEventListener("load", async ()=>{
+    await waitForMBReady();
+
+    // ✅ 啟動 Records UI（使用 MB 的登入狀態，不引入第二套登入）
+    if(window.Records && typeof Records.init === "function"){
+      Records.init();
+    }
+  });
+</script>
+
 </body>
 </html>
