@@ -407,7 +407,9 @@ function initGoogle(retry = 0) {
     client_id: CONFIG.GOOGLE_CLIENT_ID,
     callback: async (resp) => {
       try {
-        localStorage.setItem("id_token", resp.credential);
+         MB.state.idToken = response.credential;
+         localStorage.setItem("idToken", response.credential);
+
 
         const user = await verifyMe();
         setModeUser(user);
@@ -461,6 +463,9 @@ async function boot() {
   const logoutHandler = () => {
     try {
       if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+          localStorage.removeItem("idToken");
+          if (MB?.state) MB.state.idToken = "";
+
     } catch (_) {}
     setModeGuest();
     toast("已登出");
