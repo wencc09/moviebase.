@@ -18,6 +18,21 @@
     return window.MB && MB.state && MB.state.mode === "user";
   }
 
+  async function api(action, payload = {}){
+     const url = (window.CONFIG && CONFIG.GAS_WEBAPP_URL) ? CONFIG.GAS_WEBAPP_URL : (window.SCRIPT_URL || "");
+     const idToken = (window.MB && MB.state && (MB.state.idToken || MB.state.id_token)) || localStorage.getItem("idToken") || "";
+     if(!idToken) throw new Error("missing idToken");
+   
+     const res = await fetch(url, {
+       method: "POST",
+       headers: { "Content-Type": "text/plain;charset=utf-8" },
+       body: JSON.stringify({ action, idToken, ...payload })
+     });
+     const json = await res.json();
+     if(!json.ok) throw new Error(json.error || "API failed");
+     return json;
+   }
+
   // localStorage 分使用者（避免不同帳號混在一起）
   function storeKey(){
     const p = (window.MB && MB.state && MB.state.profile) ? MB.state.profile : null;
@@ -261,28 +276,46 @@
     }
 
     function renderLists(){
-      const list = loadRecords().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-      clearLists();
-      const map = { watching: els.watchingList, not: els.notList, done: els.doneList };
+        clearLists();
+      
+        // 沒登入就不打後端
+        if(!isLoggedIn()) return;
+      
+        api("records.list")
+          .then(data=>{
+            const list = (data.items || []).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+            const map = { watching: els.watchingList, not: els.notList, done: els.doneList };
+      
+            list.forEach(r=>{
+              const card = document.createElement("div");
+              card.className="recCard";
+              const icon = (r.type==="series") ? "📺" : "🎬";
+              const stars = "★".repeat(Number(r.rating||0));
+      
+              card.innerHTML = `
+                <div class="recMeta"><span>${escapeHtml(r.watchDate||"")}</span><span>${icon}</span></div>
+                <div class="recTitle">${escapeHtml(r.title||"")}</div>
+                <div class="recStars">${escapeHtml(stars)}</div>
+                ${r.note ? `<div class="recNote">${escapeHtml(r.note)}</div>` : ""}
+              `;
+      
+              card.addEventListener("click", ()=>{
+                st.currentType = r.type || "movie";
+                openForm(r);
+              });
+      
+              (map[r.status] || els.notList).appendChild(card);
+            });
+          })
+          .catch(err=>{
+            console.error(err);
+            notify("讀取雲端紀錄失敗：" + (err?.message || err));
+          });
+      }
 
-      list.forEach(r=>{
-        const card = document.createElement("div");
-        card.className="recCard";
-        const icon = (r.type==="series") ? "📺" : "🎬";
-        const stars = "★".repeat(Number(r.rating||0));
-        card.innerHTML = `
-          <div class="recMeta"><span>${escapeHtml(r.watchDate||"")}</span><span>${icon}</span></div>
-          <div class="recTitle">${escapeHtml(r.title||"")}</div>
-          <div class="recStars">${escapeHtml(stars)}</div>
-          ${r.note ? `<div class="recNote">${escapeHtml(r.note)}</div>` : ""}
-        `;
-        card.addEventListener("click", ()=>{ st.currentType=r.type||"movie"; openForm(r); });
-        (map[r.status] || els.notList).appendChild(card);
-      });
-    }
 
     function openForm(d=null){
-      els.editId.value = d?.id || "";
+      els.editId.value = d?.entryId || d?.id || "";
       els.titleInput.value = d?.title || "";
       els.genreSelect.value = d?.genre || "劇情片";
       els.dateInput.value = d?.watchDate || new Date().toISOString().slice(0,10);
@@ -300,41 +333,58 @@
       openModal(els.formModal);
     }
 
-    function saveRecord(){
-      const list = loadRecords();
-      const data = {
-        id: els.editId.value || `id_${Date.now()}`,
-        title: els.titleInput.value.trim(),
-        genre: els.genreSelect.value,
-        watchDate: els.dateInput.value,
-        episodes: els.epInput.value,
-        rating: st.currentRating,
-        note: els.noteInput.value.trim(),
-        status: els.statusSelect.value,
-        type: st.currentType,
-        updatedAt: Date.now(),
-      };
-      if(!data.title){ notify("請輸入作品名稱"); return; }
+    async function saveRecord(){
+     // ✅ 先擋：沒登入不能存
+     if(!isLoggedIn()){ notify("請先登入"); return; }
+   
+     const record = {
+       entryId: els.editId.value || "",           // ✅ 雲端用 entryId（空的=新增）
+       title: els.titleInput.value.trim(),
+       genre: els.genreSelect.value,
+       watchDate: els.dateInput.value,
+       episodes: els.epInput.value,
+       rating: st.currentRating,
+       note: els.noteInput.value.trim(),
+       status: els.statusSelect.value,
+       type: st.currentType
+     };
+   
+     if(!record.title){ notify("請輸入作品名稱"); return; }
+   
+     try{
+       const res = await api("records.upsert", { record });
+       // ✅ 後端會回 entryId（新增時很重要）
+       els.editId.value = res.entryId || els.editId.value;
+   
+       closeModal(els.formModal);
+       renderLists(); // 你現在 renderLists() 已改成讀雲端
+       notify("✅ 已儲存到雲端（試算表）");
+     }catch(err){
+       console.error(err);
+       notify("儲存失敗：" + (err?.message || err));
+     }
+   }
 
-      const idx = list.findIndex(x=>x.id===data.id);
-      if(idx>=0) list[idx]=data; else list.unshift(data);
-      saveRecords(list);
 
-      closeModal(els.formModal);
-      renderLists();
-      notify("✅ 已儲存（目前先暫存在瀏覽器，下一步接試算表）");
-    }
+    async function deleteRecord(){
+     if(!isLoggedIn()){ notify("請先登入"); return; }
+   
+     const entryId = els.editId.value;
+     if(!entryId) return;
+   
+     if(!confirm("確定刪除？")) return;
+   
+     try{
+       await api("records.delete", { entryId });
+       closeModal(els.formModal);
+       renderLists();
+       notify("🗑️ 已從雲端刪除");
+     }catch(err){
+       console.error(err);
+       notify("刪除失敗：" + (err?.message || err));
+     }
+   }
 
-    function deleteRecord(){
-      const id = els.editId.value;
-      if(!id) return;
-      if(!confirm("確定刪除？")) return;
-      const list = loadRecords().filter(x=>x.id!==id);
-      saveRecords(list);
-      closeModal(els.formModal);
-      renderLists();
-      notify("🗑️ 已刪除");
-    }
 
     function updateAnalysis(){
       const list = loadRecords();
