@@ -339,16 +339,20 @@
       });
 
       // records guard text
+      // records guard text
       const recordsGuard = document.getElementById("recordsGuardText");
-      recordsGuard.textContent =
-        (MB.state.mode === "user")
-          ? "✅ 已登入：可以開始做紀錄 UI（下一步接資料）"
-          : "🔒 訪客：此頁會被擋（已符合規格，點功能會跳登入）";
-
+      if (recordsGuard) {
+        recordsGuard.textContent =
+          (MB.state.mode === "user")
+            ? "✅ 已登入：可以開始做紀錄 UI（下一步接資料）"
+            : "🔒 訪客：此頁會被擋（已符合規格，點功能會跳登入）";
+      }
+      
       document.getElementById("btnAddRecord")?.addEventListener("click", ()=>{
         if(!MB_requireLogin("新增紀錄")) return;
         toast("下一步才會做：新增紀錄表單");
       });
+
 
       // account info
       const acc = document.getElementById("accInfo");
