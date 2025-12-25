@@ -15,8 +15,9 @@
   }
 
   function isLoggedIn(){
-    return window.MB && MB.state && MB.state.mode === "user";
-  }
+     return (window.MB && MB.state && MB.state.mode === "user" && !!getIdToken_());
+   }
+
 
   async function api(action, payload = {}){
      const url = (window.CONFIG && CONFIG.GAS_WEBAPP_URL) ? CONFIG.GAS_WEBAPP_URL : (window.SCRIPT_URL || "");
@@ -68,6 +69,17 @@
       el.addEventListener("click", ()=> closeModal(modal));
     });
   }
+
+   function getIdToken_(){
+     const st = MB?.state || {};
+     return (
+       st.idToken ||
+       localStorage.getItem("idToken") ||
+       localStorage.getItem("id_token") ||
+       ""
+     );
+   }
+
 
   function mount(container){
     // 1) 先把主 UI 塞進 recordsMount
