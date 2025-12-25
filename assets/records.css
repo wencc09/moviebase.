@@ -173,3 +173,32 @@
 .stars .star{ cursor:pointer; opacity:.35; user-select:none; transition: opacity .12s ease, transform .12s ease; }
 .stars .star.active{ opacity: 1; transform: translateY(-1px); }
 
+/* =========================
+   FIX: Records modal 點不到
+   ========================= */
+
+/* 讓 mbModal 一律可互動（避免被原本主題 CSS pointer-events 關掉） */
+.mbModal{
+  pointer-events: auto !important;
+  z-index: 99999 !important;
+}
+
+/* 用 aria-hidden 控制顯示/隱藏（更穩） */
+.mbModal[aria-hidden="true"]{ display: none !important; }
+.mbModal[aria-hidden="false"]{ display: flex !important; }
+
+/* 確保 panel 在 backdrop 上面，且 panel 內都能點 */
+.mbModal .mbBackdrop{
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+.mbModal .mbPanel{
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+.mbModal .mbPanel *{
+  pointer-events: auto;
+}
