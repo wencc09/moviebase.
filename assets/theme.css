@@ -921,74 +921,87 @@ html::before{
   box-sizing: border-box;
 }
 
-/* =========================
-   Light theme fix: pink/white bg + orange-pink buttons
-   (paste at VERY BOTTOM of assets/theme.css)
+//* =========================
+   FORCE LIGHT THEME TO WORK (no JS change)
+   Paste at VERY BOTTOM of assets/theme.css
 ========================= */
 
-/* ✅ alias for style.css typos (no JS change) */
+/* ✅ alias for style.css vars (avoid undefined) */
 :root{
   --glass2: var(--glass-2);
   --line: var(--stroke);
 }
 
-/* ✅ prevent dark flash in light (style.css has html{background:#070a12}) */
-html[data-theme="light"]{
-  background: var(--bg0);
+/* ✅ Neutralize the old fixed background on html (yours was hard-coded dark) */
+html::before{
+  background: none !important;
 }
 
-/* ✅ Make the fixed background layer follow theme variables (override your old hard-coded dark html::before) */
-html::before{
+/* ✅ New fixed background lives on BODY (so it can follow body/html theme state) */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
   background:
     radial-gradient(1200px 800px at 12% 18%, rgba(255,120,180,.18), transparent 55%),
     radial-gradient(1100px 900px at 82% 22%, rgba(255,170,210,.16), transparent 55%),
     radial-gradient(900px 700px at 50% 115%, rgba(255,190,120,.12), transparent 55%),
-    linear-gradient(135deg, var(--bg1), var(--bg0) 55%, var(--bg2)) !important;
+    linear-gradient(135deg, var(--bg-1), var(--bg) 55%, var(--bg-2));
+  background-attachment: fixed;
 }
 
-/* ✅ Your desired light palette */
-:root[data-theme="light"]{
-  /* background: light pink */
+/* ✅ Make light tokens apply no matter theme flag is on html OR body */
+:root[data-theme="light"],
+html[data-theme="light"],
+body[data-theme="light"],
+:root.theme-light,
+html.theme-light,
+body.theme-light{
+  color-scheme: light;
+
+  /* 粉白底 */
   --bg0:#fff3f8;
   --bg1:#fffdfb;
   --bg2:#ffe2ee;
 
-  /* accents: orange-pink gradient buttons */
-  --accent:#ff6fa3;   /* pink */
-  --accent2:#ff9fc0;  /* soft pink */
-  --accent3:#ff9a6b;  /* orange-peach */
-  --accent4:#7aa7ff;  /* soft blue */
-  --accent5:#ff7bd8;  /* neon pink */
+  --bg: var(--bg0);
+  --bg-1: var(--bg1);
+  --bg-2: var(--bg2);
+
+  /* 橘粉漸層按鈕 */
+  --accent:#ff6fa3;   /* 粉 */
+  --accent2:#ff9fc0;  /* 淺粉 */
+  --accent3:#ff9a6b;  /* 橘粉 */
+  --accent4:#7aa7ff;
+  --accent5:#ff7bd8;
+
+  --text:#0c1326;
+  --muted: rgba(12,19,38,.72);
 
   --nav-bg: rgba(255,255,255,.72);
-  --nav-border: rgba(255, 120, 160, .18);
-  --overlay: rgba(255, 160, 190, .20);
+  --nav-border: rgba(255,120,160,.18);
+  --overlay: rgba(255,160,190,.20);
 
-  --stroke: rgba(255, 120, 160, .18);
-  --glow: 0 14px 44px rgba(255, 120, 170, .22);
+  --stroke: rgba(255,120,160,.18);
+  --cardA: rgba(255,255,255,.82);
+  --cardB: rgba(255,255,255,.64);
+  --glass: rgba(255,255,255,.56);
+  --glass-2: rgba(255,255,255,.72);
+
+  --shadow: 0 18px 55px rgba(12,19,38,.12);
+  --glow: 0 14px 44px rgba(255,120,170,.22);
 }
 
-/* ✅ pill text fallback (your .pill had white text fallback -> light theme會怪) */
-:root[data-theme="light"] .pill{
+/* ✅ light theme pills/btn readability */
+:root[data-theme="light"] .pill,
+html[data-theme="light"] .pill,
+body[data-theme="light"] .pill,
+:root.theme-light .pill,
+html.theme-light .pill,
+body.theme-light .pill{
   color: var(--text);
-  background: rgba(255,255,255,.55);
-  border-color: rgba(255, 120, 160, .18);
+  background: rgba(255,255,255,.60);
+  border-color: rgba(255,120,160,.18);
 }
-
-/* ✅ Optional: reduce "dark glass" feeling on light theme (讓畫面更粉白) */
-:root[data-theme="light"] .cinemaScreen{
-  background:
-    radial-gradient(1200px 520px at 20% 0%, rgba(255,255,255,.65), transparent 50%),
-    radial-gradient(900px 500px at 70% 30%, rgba(255,160,190,.18), transparent 55%),
-    rgba(255,255,255,.35) !important;
-  border-color: rgba(255, 120, 160, .20) !important;
-  box-shadow: 0 18px 60px rgba(255, 120, 160, .10) !important;
-}
-
-:root[data-theme="light"] .postCard,
-:root[data-theme="light"] .screenInner,
-:root[data-theme="light"] .composerDrawer{
-  background: rgba(255,255,255,.52) !important;
-  border-color: rgba(255, 120, 160, .18) !important;
-}
-
