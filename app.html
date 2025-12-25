@@ -17,6 +17,7 @@
 
   <link rel="stylesheet" href="./assets/theme.css?v=2025122401">
   <link rel="stylesheet" href="./assets/style.css?v=2025122401">
+  <link rel="stylesheet" href="./assets/records.css?v=20251225_2">
 
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -239,6 +240,34 @@
   <div class="toast" id="toast"></div>
 
   <script src="./assets/app.js?v=20251225_3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="./assets/records-ui.js?v=20251225_2" defer></script>
+
+  <script>
+    (function(){
+      function tryMount(){
+        if(!window.Records || !Records.mount) return;
+  
+        // 你主站的 records hash 是 #records
+        const inRecords = (location.hash || "").includes("records");
+        const mountEl = document.getElementById("recordsMount");
+        if(!inRecords || !mountEl) return;
+  
+        // 避免重複掛載
+        if(mountEl.dataset.mounted === "1") return;
+        mountEl.dataset.mounted = "1";
+  
+        Records.mount(mountEl);
+      }
+  
+      window.addEventListener("hashchange", tryMount);
+      window.addEventListener("load", () => setTimeout(tryMount, 50));
+  
+      // 保險（有些 SPA 不一定觸發 hashchange）
+      setInterval(tryMount, 600);
+    })();
+  </script>
+
 
   <script>
     function waitForMBReady(timeoutMs = 6000){
