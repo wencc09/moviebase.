@@ -171,20 +171,29 @@ function clearIdToken_() {
 }
 
 async function verifyMe(idTokenFromLogin) {
-  const idToken = idTokenFromLogin || getIdToken_();
+  const idToken =
+    idTokenFromLogin ||
+    MB?.state?.idToken ||
+    localStorage.getItem("idToken") ||
+    localStorage.getItem("id_token") ||
+    "";
+
   if (!idToken) throw new Error("missing idToken");
 
   const data = await apiPOST({ action: "me", idToken });
   if (!data || !data.ok) {
-    clearIdToken_();
-    throw new Error(data?.error || "me failed");
+    localStorage.removeItem("idToken");
+    localStorage.removeItem("id_token");
+    if (MB?.state) MB.state.idToken = "";
+    throw new Error((data && data.error) || "me failed");
   }
 
-  // 登入成功：順便抓 profile（失敗也不擋登入）
-  try { await loadProfile_(); } catch (_) {}
+  // ✅ 登入成功後把暱稱 profile 抓回來（不要在 function 外面 await）
+  try { await loadProfile_(); } catch (_) { MB.state.profile = null; }
 
   return data.user;
 }
+
 
 function displayName_(user, profile) {
   const nick = profile?.nickname && String(profile.nickname).trim();
@@ -276,11 +285,17 @@ function goAfterAuthIfNeeded() {
 function setModeGuest() {
   MB.state.mode = "guest";
   MB.state.user = null;
-  clearIdToken_();
+  MB.state.profile = null;
+  MB.state.idToken = "";
+
+  localStorage.removeItem("idToken");
+  localStorage.removeItem("id_token");
   localStorage.setItem("mode", "guest");
+
   renderAuthUI();
   window.dispatchEvent(new Event("mb:auth"));
 }
+
 
 function setModeUser(user) {
   MB.state.mode = "user";
@@ -501,8 +516,10 @@ async function boot() {
   const logoutHandler = () => {
     try {
       if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-          clearIdToken_();
-          if (MB?.state) MB.state.idToken = "";
+          localStorage.removeItem("idToken");
+          localStorage.removeItem("id_token");
+          if (MB?.state) { MB.state.idToken = ""; MB.state.profile = null; }
+
 
     } catch (_) {}
     setModeGuest();
