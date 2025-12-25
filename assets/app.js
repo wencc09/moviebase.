@@ -404,29 +404,40 @@ function initGoogle(retry = 0) {
   }
 
   google.accounts.id.initialize({
-    client_id: CONFIG.GOOGLE_CLIENT_ID,
-    callback: async (resp) => {
-      try {
-         MB.state.idToken = response.credential;
-         localStorage.setItem("idToken", response.credential);
+     client_id: CONFIG.GOOGLE_CLIENT_ID,
+     callback: async (resp) => {
+       try {
+         const idToken = resp?.credential;
+         if (!idToken) throw new Error("missing credential from Google");
+   
+         // ✅ 存起來（Records / 後端都靠這個）
+         MB.state.idToken = resp.credential;
+         localStorage.setItem("idToken", resp.credential);
 
+   
+         // （可選）兼容舊key：如果你其他地方曾經用過 id_token
+         localStorage.setItem("id_token", idToken);
+   
+         const user = await verifyMe();
+         setModeUser(user);
+   
+         closeLoginModal();
+         toast("登入成功");
+         goAfterAuthIfNeeded();
+       } catch (e) {
+         console.error(e);
+         toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
+   
+         // ✅ 失敗要把兩種 key 都清掉（避免假登入）
+         localStorage.removeItem("idToken");
+         localStorage.removeItem("id_token");
+         if (MB?.state) MB.state.idToken = "";
+   
+         setModeGuest();
+       }
+     }
+   });
 
-        const user = await verifyMe();
-        setModeUser(user);
-
-        closeLoginModal();
-        toast("登入成功");
-        goAfterAuthIfNeeded();
-      } catch (e) {
-        console.error(e);
-
-        // ✅ 直接顯示後端真正錯誤（例如 aud mismatch / 權限 / 非 JSON）
-        toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
-        localStorage.removeItem("id_token");
-        setModeGuest();
-      }
-    }
-  });
 
   const gsi = $("#gsiBtn");
   if (gsi) {
