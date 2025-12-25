@@ -33,8 +33,15 @@
   }
 
   // ----- UI helpers -----
-  function openModal(el){ el.style.display = "flex"; }
-  function closeModal(el){ el.style.display = "none"; }
+  function openModal(el){
+  el.style.display = "flex";
+  el.setAttribute("aria-hidden", "false");
+   }
+   function closeModal(el){
+     el.style.display = "none";
+     el.setAttribute("aria-hidden", "true");
+   }
+
   function wireModalClose(modal){
     modal.querySelectorAll("[data-close]").forEach(el=>{
       el.addEventListener("click", ()=> closeModal(modal));
@@ -190,7 +197,9 @@
         </div>
       </div>
     `;
-    document.body.appendChild(modalsWrap);
+    if(!document.getElementById("recTypeModal")){
+        document.body.appendChild(modalsWrap);
+      }
 
     // 3) 綁定行為
     const $ = (id)=>document.getElementById(id);
@@ -389,6 +398,9 @@
         ? "✅ 已登入：Records 模板已掛載（目前資料先存在瀏覽器）"
         : "🔒 訪客：已阻擋（請先登入）";
     }
+    // ✅ 加在這裡：先把兩個 modal 強制關掉（避免初始化時顯示/卡住）
+    closeModal(els.typeModal);
+    closeModal(els.formModal);
 
     // modal close wiring
     wireModalClose(els.typeModal);
