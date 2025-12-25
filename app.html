@@ -285,6 +285,12 @@
 
     window.addEventListener("load", async ()=>{
       await waitForMBReady();
+      
+      if (!window.MB) {
+        console.error("app.js 載入失敗，MB 沒建立（先修 app.js 的 SyntaxError）");
+        return;
+      }
+
 
       const hash = (location.hash || "#lobby").slice(1);
       const wanted = ["lobby","hall","records","account"].includes(hash) ? hash : "lobby";
