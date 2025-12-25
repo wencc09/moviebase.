@@ -19,26 +19,42 @@
    }
 
 
-  async function api(action, payload = {}){
-     const url = (window.CONFIG && CONFIG.GAS_WEBAPP_URL) ? CONFIG.GAS_WEBAPP_URL : (window.SCRIPT_URL || "");
+  async function api(action, payload = {}) {
+     const url =
+       (window.CONFIG && window.CONFIG.GAS_WEBAPP_URL) ? window.CONFIG.GAS_WEBAPP_URL :
+       (typeof CONFIG !== "undefined" && CONFIG.GAS_WEBAPP_URL) ? CONFIG.GAS_WEBAPP_URL :
+       (window.SCRIPT_URL || "");
+   
+     if (!url) throw new Error("GAS_WEBAPP_URL not found（請在 app.js 加上 window.CONFIG = CONFIG）");
+   
      const st = (window.MB && MB.state) ? MB.state : {};
      const idToken =
-        st.idToken || st.id_token || st.credential ||
-        (st.user && (st.user.idToken || st.user.id_token || st.user.credential)) ||
-        localStorage.getItem("idToken") ||
-        localStorage.getItem("mb_idToken") || "";
-
-     if(!idToken) throw new Error("missing idToken");
+       st.idToken ||
+       localStorage.getItem("idToken") ||
+       localStorage.getItem("id_token") ||
+       "";
+   
+     if (!idToken) throw new Error("missing idToken");
    
      const res = await fetch(url, {
        method: "POST",
        headers: { "Content-Type": "text/plain;charset=utf-8" },
-       body: JSON.stringify({ action, idToken, ...payload })
+       body: JSON.stringify({ action, idToken, ...payload, _t: Date.now() })
      });
-     const json = await res.json();
-     if(!json.ok) throw new Error(json.error || "API failed");
+   
+     const text = await res.text();
+     let json;
+     try {
+       json = JSON.parse(text);
+     } catch (e) {
+       const head = text.slice(0, 220).replace(/\s+/g, " ");
+       throw new Error(`Backend not JSON (HTTP ${res.status}): ${head}`);
+     }
+   
+     if (!json.ok) throw new Error(json.error || "API failed");
      return json;
    }
+
 
   // localStorage 分使用者（避免不同帳號混在一起）
   function storeKey(){
