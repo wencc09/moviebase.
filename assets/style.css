@@ -649,3 +649,8 @@ body{ margin:0; overflow-x:hidden; }
     min-width: 170px;
   }
 }
+
+/* ✅ mbModal: 用 aria-hidden 控制顯示/隱藏（避免關不掉） */
+.mbModal[aria-hidden="true"] { display: none !important; }
+.mbModal[aria-hidden="false"] { display: flex !important; }
+
