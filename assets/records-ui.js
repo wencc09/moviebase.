@@ -479,7 +479,7 @@
       const ok = isLoggedIn();
       els.overlay.style.display = ok ? "none" : "flex";
       els.guardText.textContent = ok
-        ? "✅ 已登入：Records 模板已掛載（目前資料先存在瀏覽器）"
+        ? "✅ 已登入"
         : "🔒 訪客：已阻擋（請先登入）";
     }
     // ✅ 加在這裡：先把兩個 modal 強制關掉（避免初始化時顯示/卡住）
