@@ -330,7 +330,7 @@
       try {
         const data = await api("records.list");
         const list = (data.items || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-        st.records = list; // ✅ 更新快取
+        saveRecords(list); // ✅ 關鍵：把雲端清單同步回 localStorage，統計/推薦就會有資料
 
         const map = { watching: els.watchingList, not: els.notList, done: els.doneList };
 
