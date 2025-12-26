@@ -62,7 +62,6 @@ async function apiFetch_(url, opts) {
 async function apiPOST(payload) {
   return apiFetch_(CONFIG.GAS_WEBAPP_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload),
   });
 }
