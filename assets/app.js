@@ -153,15 +153,22 @@ async function initNicknameUI() {
 ;
 }
 
+function isLikelyJwt_(t) {
+  return typeof t === "string" && t.split(".").length === 3 && t.length > 30;
+}
+
 
 function getIdToken_() {
-  return (
+  const t =
     MB?.state?.idToken ||
     localStorage.getItem("idToken") ||
     localStorage.getItem("id_token") ||
-    ""
-  );
+    "";
+
+  if (!isLikelyJwt_(t)) return ""; // ✅ 壞的就不要送
+  return t;
 }
+
 
 function clearIdToken_() {
   localStorage.removeItem("idToken");
@@ -200,10 +207,6 @@ function displayName_(user, profile) {
 }
 
 
-function displayName_(user, profile) {
-  const nick = profile?.nickname && String(profile.nickname).trim();
-  return nick || user?.name || user?.email || "User";
-}
 
 
 function jsonp(url, timeoutMs = 12000) {
@@ -909,20 +912,28 @@ window.addEventListener("load", boot);
 
   let ALL_CARDS = []; // ✅ 貼文快取：只要後端載入一次，搜尋就用它
   async function loadCards() {
-     const idToken = localStorage.getItem("id_token");
+     const idToken = getIdToken_();
    
-     // ✅ 永遠用 POST，訪客就不要帶 idToken
      const payload = idToken
        ? { action: "list_posts", idToken }
        : { action: "list_posts" };
    
      const data = await apiPOST(payload);
+   
+     // ✅ 如果後端回 invalid_token，直接清掉並降級訪客（避免一直卡死）
+     if (!data.ok && String(data.error || "").includes("invalid_token")) {
+       clearIdToken_();
+       setModeGuest();
+       return [];
+     }
+   
      if (!data.ok) throw new Error(data.error || "list_posts failed");
    
      const cards = (data.rows || []).map(toCard);
      cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
      return cards;
    }
+
    
 
 
