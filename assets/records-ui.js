@@ -321,48 +321,53 @@
    
     }
 
-    async function renderLists() {
-      clearLists();
+     async function renderLists() {
+     clearLists();
+   
+     if (!isLoggedIn()) {
+       st.records = [];
+       return;
+     }
+   
+     try {
+       // ✅ 你原本缺的就是這行：把 data 拿回來
+       const data = await api("records.list");
+   
+       // ✅ 後端回傳欄位容錯（items / rows 都吃）
+       const list = (data.items || data.rows || [])
+         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+   
+       st.records = list; // ✅ 雲端清單快取（推薦/統計也吃這份）
+   
+       const map = { watching: els.watchingList, not: els.notList, done: els.doneList };
+   
+       list.forEach(r => {
+         const card = document.createElement("div");
+         card.className = "recCard";
+         const icon = (r.type === "series") ? "📺" : "🎬";
+         const stars = "★".repeat(Number(r.rating || 0));
+   
+         card.innerHTML = `
+           <div class="recMeta"><span>${escapeHtml(r.watchDate || "")}</span><span>${icon}</span></div>
+           <div class="recTitle">${escapeHtml(r.title || "")}</div>
+           <div class="recStars">${escapeHtml(stars)}</div>
+           ${r.note ? `<div class="recNote">${escapeHtml(r.note)}</div>` : ""}
+         `;
+   
+         card.addEventListener("click", () => {
+           st.currentType = r.type || "movie";
+           openForm(r);
+         });
+   
+         (map[r.status] || els.notList).appendChild(card);
+       });
+   
+     } catch (err) {
+       console.error(err);
+       notify("讀取雲端紀錄失敗：" + (err?.message || err));
+     }
+   }
 
-      if (!isLoggedIn()) {
-        st.records = [];
-        return;
-      }
-
-      try {
-        
-        const list = (data.items || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-         
-        st.records = list; // ✅ 用雲端清單當快取（推薦/統計也吃這份）
-
-
-        const map = { watching: els.watchingList, not: els.notList, done: els.doneList };
-
-        list.forEach(r => {
-          const card = document.createElement("div");
-          card.className = "recCard";
-          const icon = (r.type === "series") ? "📺" : "🎬";
-          const stars = "★".repeat(Number(r.rating || 0));
-
-          card.innerHTML = `
-            <div class="recMeta"><span>${escapeHtml(r.watchDate || "")}</span><span>${icon}</span></div>
-            <div class="recTitle">${escapeHtml(r.title || "")}</div>
-            <div class="recStars">${escapeHtml(stars)}</div>
-            ${r.note ? `<div class="recNote">${escapeHtml(r.note)}</div>` : ""}
-          `;
-
-          card.addEventListener("click", () => {
-            st.currentType = r.type || "movie";
-            openForm(r);
-          });
-
-          (map[r.status] || els.notList).appendChild(card);
-        });
-      } catch (err) {
-        console.error(err);
-        notify("讀取雲端紀錄失敗：" + (err?.message || err));
-      }
-    }
 
     function openForm(d = null) {
       els.editId.value = d?.entryId || "";
