@@ -314,9 +314,11 @@
       if (!isLoggedIn()) return [];
       if (st.records && st.records.length) return st.records;
 
+      
       const data = await api("records.list");
-      st.records = data.items || [];
+      st.records = (data.items || []).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
       return st.records;
+   
     }
 
     async function renderLists() {
@@ -328,9 +330,11 @@
       }
 
       try {
-        const data = await api("records.list");
+        
         const list = (data.items || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-        saveRecords(list); // ✅ 關鍵：把雲端清單同步回 localStorage，統計/推薦就會有資料
+         
+        st.records = list; // ✅ 用雲端清單當快取（推薦/統計也吃這份）
+
 
         const map = { watching: els.watchingList, not: els.notList, done: els.doneList };
 
