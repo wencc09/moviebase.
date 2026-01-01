@@ -911,30 +911,70 @@ window.addEventListener("load", boot);
   }
 
   let ALL_CARDS = []; // ✅ 貼文快取：只要後端載入一次，搜尋就用它
-  async function loadCards() {
-     const idToken = getIdToken_();
+    async function loadCards(mode = FEED_MODE) {
+       mode = normalizeFeedMode_(mode);
    
-     const payload = idToken
-       ? { action: "list_posts", idToken }
-       : { action: "list_posts" };
+       const idToken = getIdToken_();
    
-     const data = await apiPOST(payload);
+       // 依模式決定打哪個 action
+       let payload = null;
    
-     // ✅ 如果後端回 invalid_token，直接清掉並降級訪客（避免一直卡死）
-     if (!data.ok && String(data.error || "").includes("invalid_token")) {
-       clearIdToken_();
-       setModeGuest();
-       return [];
+       if (mode === "mine") {
+         if (!idToken) throw new Error("not logged in");
+         payload = { action: "list_my_posts", idToken };
+       } else if (mode === "liked") {
+         if (!idToken) throw new Error("not logged in");
+         payload = { action: "list_my_likes", idToken };
+       } else if (mode === "commented") {
+         if (!idToken) throw new Error("not logged in");
+         payload = { action: "list_my_comments", idToken };
+       } else {
+         // all
+         payload = idToken ? { action: "list_posts", idToken } : { action: "list_posts" };
+       }
+   
+       const data = await apiPOST(payload);
+   
+       // ✅ 如果後端回 invalid_token，直接清掉並降級訪客
+       if (!data.ok && String(data.error || "").includes("invalid_token")) {
+         clearIdToken_();
+         setModeGuest();
+         return [];
+       }
+   
+       if (!data.ok) throw new Error(data.error || "list_posts failed");
+   
+       const cards = (data.rows || []).map(toCard);
+       cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+       return cards;
      }
    
-     if (!data.ok) throw new Error(data.error || "list_posts failed");
-   
-     const cards = (data.rows || []).map(toCard);
-     cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
-     return cards;
-   }
+      // =========================
+     // Feed mode: all / mine / liked / commented
+     // - 讓 account 按鈕可以切換資料來源
+     // - 支援 URL ?feed=mine 以及 localStorage mb_feed_mode
+     // =========================
+     function normalizeFeedMode_(m){
+       m = String(m || "").toLowerCase().trim();
+       if (m === "my_posts" || m === "posts" || m === "mine") return "mine";
+       if (m === "my_likes" || m === "likes" || m === "liked") return "liked";
+       if (m === "my_comments" || m === "comments" || m === "commented") return "commented";
+       return "all";
+     }
 
-   
+  let FEED_MODE = "all";
+  try{
+    const sp = new URLSearchParams(location.search);
+    const fromUrl = sp.get("feed");
+    const fromLs = localStorage.getItem("mb_feed_mode");
+    FEED_MODE = normalizeFeedMode_(fromUrl || fromLs || "all");
+    if (fromLs) localStorage.removeItem("mb_feed_mode");
+  }catch(_){}
+
+  // 讓外部（account 按鈕）可以切換
+  window.MB_setFeedMode = (mode) => { FEED_MODE = normalizeFeedMode_(mode); };
+  window.MB_getFeedMode = () => FEED_MODE;
+  
 
 
 
@@ -976,8 +1016,9 @@ window.addEventListener("load", boot);
   const q = $("postSearch")?.value || "";
 
   if (forceReload) {
-    ALL_CARDS = await loadCards();  // ✅ 只有需要時才打後端
-  }
+     ALL_CARDS = await loadCards(FEED_MODE);
+   }
+
 
   render(ALL_CARDS, q);            // ✅ 搜尋只用快取過濾
   applyRoleLock();
@@ -985,7 +1026,14 @@ window.addEventListener("load", boot);
 
 // ✅ 加在 refresh() 後面這裡（同一個 IIFE 裡）
 window.MB_refreshPosts = (force = true) => refresh(force);
+window.MB_showFeed = async (mode) => {
+  window.MB_setFeedMode(mode);
+  await refresh(true);
+  // 滾到貼文牆（如果在同頁）
+  document.getElementById("postList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
+   
 
   // Mount
   window.addEventListener("load", async () => {
@@ -1554,4 +1602,43 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
   // 給你除錯用：Console 可直接呼叫
   window.MB_closeCommentModal = close;
   window.MB_openCommentModal = open;
+})();
+
+// =========================
+// Account: jump buttons -> my posts / my likes / my comments
+// =========================
+(function wireAccountJumpButtons(){
+  const FEED_PAGE_URL = "./app.html"; // ⚠️ 如果你的貼文牆頁不是 app.html，改成正確檔名
+
+  function go(mode){
+    // 先要求登入
+    if (typeof window.MB_requireLogin === "function") {
+      if (!window.MB_requireLogin("查看清單")) return;
+    }
+
+    // 同頁：如果貼文牆存在，直接切模式刷新
+    if (typeof window.MB_showFeed === "function" && document.getElementById("postList")) {
+      window.MB_showFeed(mode);
+      return;
+    }
+
+    // 不同頁：用 localStorage + 轉頁（到貼文牆頁）
+    try { localStorage.setItem("mb_feed_mode", mode); } catch(_){}
+    const base = FEED_PAGE_URL;
+    const sep = base.includes("?") ? "&" : "?";
+    location.href = base + sep + "feed=" + encodeURIComponent(mode) + "#hall";
+  }
+
+  function bind(id, mode){
+    const btn = document.getElementById(id);
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => go(mode));
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    bind("btnGoMyPosts", "mine");
+    bind("btnGoMyLikes", "liked");
+    bind("btnGoMyComments", "commented");
+  });
 })();
