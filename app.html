@@ -115,6 +115,20 @@
           </div>
         </section>
 
+        <section class="card" id="globalRecCard" style="margin-top:12px;">
+          <div class="cardTitle" style="display:flex; align-items:center; justify-content:space-between;">
+            <span>🔥 站內熱門推薦</span>
+            <button class="btn" id="btnGlobalRecReload" type="button">重新整理</button>
+          </div>
+        
+          <div class="muted" style="margin-top:6px;">
+            ※ 推薦以「所有用戶觀影紀錄」做匿名統計，只顯示作品聚合結果，不會顯示任何人的私人紀錄內容。
+          </div>
+        
+          <!-- cardsGrid / recCard 你已經有 records.css，所以這裡能直接沿用 -->
+          <div class="cardsGrid" id="globalRecBox" style="margin-top:10px;"></div>
+        </section>
+
         <div class="toolRow">
           <button class="btn" type="button" data-tabjump="hall">去漂浮影廳</button>
           <button class="btn" type="button" data-tabjump="records">去觀影紀錄</button>
@@ -306,8 +320,18 @@
           return;
         }
       }
+    
       showTab(tab);
+    
+      // ✅ 切到大廳就載入站內推薦（若函式存在）
+      if(tab === "lobby" && typeof window.MB_loadGlobalRecs === "function"){
+        window.MB_loadGlobalRecs();
+      }
     }
+    
+    // ✅ 讓 records-ui.js 可以呼叫切分頁（很重要）
+    window.MB_goTab = safeGoTab;
+
 
     window.addEventListener("load", async ()=>{
       await waitForMBReady();
