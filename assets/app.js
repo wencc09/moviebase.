@@ -43,6 +43,31 @@ function toast(msg) {
   toast._t = setTimeout(() => (el.style.display = "none"), 2400);
 }
 
+
+function mbLoading_(on, text = "讀取中…") {
+  const el = document.getElementById("mbLoading");
+  const tx = document.getElementById("mbLoadingText");
+  if (!el) return;
+
+  if (on) {
+    if (tx) tx.textContent = text;
+    el.classList.add("is-on");
+    el.setAttribute("aria-hidden", "false");
+  } else {
+    el.classList.remove("is-on");
+    el.setAttribute("aria-hidden", "true");
+  }
+}
+
+async function withLoading_(text, fn) {
+  mbLoading_(true, text);
+  try {
+    return await fn();
+  } finally {
+    mbLoading_(false);
+  }
+}
+
 /* =========================
    API (robust JSON handling)
 ========================= */
@@ -1016,6 +1041,8 @@ window.addEventListener("load", boot);
   const q = $("postSearch")?.value || "";
 
   if (forceReload) {
+     const wrap = $("postList");
+     if (wrap) wrap.innerHTML = `<div class="muted">讀取中…</div>`; // ✅ 先顯示
      ALL_CARDS = await loadCards(FEED_MODE);
    }
 
@@ -1024,14 +1051,46 @@ window.addEventListener("load", boot);
   applyRoleLock();
 }
 
-// ✅ 加在 refresh() 後面這裡（同一個 IIFE 裡）
-window.MB_refreshPosts = (force = true) => refresh(force);
 window.MB_showFeed = async (mode) => {
-  window.MB_setFeedMode(mode);
-  await refresh(true);
-  // 滾到貼文牆（如果在同頁）
-  document.getElementById("postList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // ✅ 先開 loading（同頁切換也會有讀取中）
+  try {
+    if (typeof window.mbLoading_ === "function") {
+      const msg =
+        mode === "mine" ? "讀取中…正在載入你發過的貼文" :
+        mode === "liked" ? "讀取中…正在載入你按讚的貼文" :
+        mode === "commented" ? "讀取中…正在載入你留言過的貼文" :
+        "讀取中…";
+      mbLoading_(true, msg);
+    }
+  } catch (_) {}
+
+  // ✅ 如果是「轉頁過來」的 pending，也一併吃掉（保險）
+  try {
+    const pend = localStorage.getItem("mb_loading_pending") === "1";
+    if (pend && typeof window.mbLoading_ === "function") {
+      const msg = localStorage.getItem("mb_loading_msg") || "讀取中…";
+      mbLoading_(true, msg);
+    }
+  } catch (_) {}
+
+  try {
+    window.MB_setFeedMode(mode);
+    await refresh(true);
+
+    // 滾到貼文牆（如果在同頁）
+    document.getElementById("postList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } finally {
+    // ✅ 跑完一定關 + 清掉轉頁 pending
+    try {
+      localStorage.removeItem("mb_loading_pending");
+      localStorage.removeItem("mb_loading_msg");
+    } catch (_) {}
+    try {
+      if (typeof window.mbLoading_ === "function") mbLoading_(false);
+    } catch (_) {}
+  }
 };
+
 
    
 
@@ -1610,30 +1669,57 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
 (function wireAccountJumpButtons(){
   const FEED_PAGE_URL = "./app.html"; // ⚠️ 如果你的貼文牆頁不是 app.html，改成正確檔名
 
-  function go(mode){
-    // 先要求登入
-    if (typeof window.MB_requireLogin === "function") {
-      if (!window.MB_requireLogin("查看清單")) return;
-    }
+  (function () {
+
+  function modeText_(mode){
+    if (mode === "mine") return "讀取中…正在載入你發過的貼文";
+    if (mode === "liked") return "讀取中…正在載入你按讚的貼文";
+    if (mode === "commented") return "讀取中…正在載入你留言過的貼文";
+    return "讀取中…";
+  }
+
+  async function go(mode) {
+    const msg = modeText_(mode);
+
+    // ✅ 先顯示 Loading（同頁/轉頁都先出現）
+    if (typeof window.mbLoading_ === "function") mbLoading_(true, msg);
+
+    const samePage = (typeof window.MB_showFeed === "function" && document.getElementById("postList"));
 
     // 同頁：如果貼文牆存在，直接切模式刷新
-    if (typeof window.MB_showFeed === "function" && document.getElementById("postList")) {
-      window.MB_showFeed(mode);
+    if (samePage) {
+      try {
+        // ✅ 等它跑完再關（就算 MB_showFeed 不是 async 也 OK）
+        await Promise.resolve(window.MB_showFeed(mode));
+      } finally {
+        if (typeof window.mbLoading_ === "function") mbLoading_(false);
+      }
       return;
     }
 
     // 不同頁：用 localStorage + 轉頁（到貼文牆頁）
-    try { localStorage.setItem("mb_feed_mode", mode); } catch(_){}
+    try {
+      localStorage.setItem("mb_feed_mode", mode);
+      // ✅ 讓新頁也知道要顯示 loading
+      localStorage.setItem("mb_loading_pending", "1");
+      localStorage.setItem("mb_loading_msg", msg);
+    } catch (_) {}
+
     const base = FEED_PAGE_URL;
     const sep = base.includes("?") ? "&" : "?";
-    location.href = base + sep + "feed=" + encodeURIComponent(mode) + "#hall";
+    const url = base + sep + "feed=" + encodeURIComponent(mode) + "#hall";
+
+    // ✅ 給瀏覽器 1 個 frame 的時間把 Loading 畫出來，再跳轉
+    requestAnimationFrame(() => {
+      setTimeout(() => { location.href = url; }, 30);
+    });
   }
 
   function bind(id, mode){
     const btn = document.getElementById(id);
     if (!btn || btn.dataset.bound) return;
     btn.dataset.bound = "1";
-    btn.addEventListener("click", () => go(mode));
+    btn.addEventListener("click", () => { go(mode); });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
