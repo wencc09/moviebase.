@@ -663,3 +663,38 @@ body{ margin:0; overflow-x:hidden; }
   .topLikedGrid{ grid-template-columns: repeat(1, minmax(0, 1fr)); }
 }
 
+/* ✅ Global Loading Overlay */
+.mbLoading{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.mbLoading.is-on{ display: flex; }
+
+.mbLoadingCard{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  background: rgba(10,14,26,.65);
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+}
+
+.mbSpinner{
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.25);
+  border-top-color: rgba(255,255,255,.95);
+  animation: mbSpin .85s linear infinite;
+}
+@keyframes mbSpin { to { transform: rotate(360deg); } }
+
