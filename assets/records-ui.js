@@ -559,10 +559,24 @@
     });
 
     els.recommendBtn?.addEventListener("click", () => {
-      const open = (els.recommendArea.style.display === "none" || !els.recommendArea.style.display);
-      els.recommendArea.style.display = open ? "block" : "none";
-      if (open) updateRecommend();
-    });
+     notify("站內推薦已移到「影院大廳」分頁！");
+   
+     // ✅ 在 app.html 裡：直接切到 lobby
+     if (typeof window.MB_goTab === "function") {
+       window.MB_goTab("lobby");
+   
+       setTimeout(() => {
+         // 確保載入一次
+         if (typeof window.MB_loadGlobalRecs === "function") window.MB_loadGlobalRecs();
+         document.getElementById("globalRecCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+       }, 350);
+   
+       return;
+     }
+   
+     // ✅ 在 records.html（沒有 tab 系統）：導到主站大廳
+     location.href = "app.html#lobby";
+   });
 
     // init
     renderStars();
