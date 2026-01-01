@@ -1044,6 +1044,74 @@ window.MB_refreshPosts = (force = true) => refresh(force);
         }
       });
 
+// =========================
+// Global Recs (All users aggregated)
+// 顯示在 app.html 的「大廳」#globalRecBox
+// 後端需提供 action: "records.recommendGlobal"
+// =========================
+async function MB_loadGlobalRecs(limit = 6){
+  const box = document.getElementById("globalRecBox");
+  if(!box) return;
+
+  // 綁定重新整理（只綁一次）
+  const btn = document.getElementById("btnGlobalRecReload");
+  if(btn && !btn.dataset.bound){
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", ()=> MB_loadGlobalRecs(limit));
+  }
+
+  box.innerHTML = `<div class="muted">讀取中…</div>`;
+
+  try{
+    // idToken：可選（有就帶，沒有也可以）
+    const idToken = (typeof getIdToken_ === "function") ? (getIdToken_() || "") : "";
+    const payload = { action:"records.recommendGlobal", limit, _t: Date.now() };
+    if(idToken) payload.idToken = idToken;
+
+    const json = await apiPOST(payload);
+    if(!json || !json.ok) throw new Error((json && json.error) || "API failed");
+
+    const items = json.items || [];
+    if(!items.length){
+      box.innerHTML = `<div class="muted">目前還沒有站內熱門資料（大家先多新增幾筆並評分）</div>`;
+      return;
+    }
+
+    box.innerHTML = "";
+    items.forEach((it, idx)=>{
+      const div = document.createElement("div");
+      div.className = "recCard";
+
+      const title = String(it.title || "").trim();
+      const kind  = String(it.kind || it.type || "").trim();
+      const avg   = Number(it.avgRating || 0);
+      const cnt   = Number(it.count || 0);
+
+      const poster = String(it.posterUrl || "").trim();
+      const img = poster
+        ? `<img src="${poster}" style="width:100%;height:140px;object-fit:cover;border-radius:12px;margin-top:8px;" alt="">`
+        : "";
+
+      const left  = `TOP ${idx+1}` + (kind ? ` · ${escapeHtml(kindLabel(kind) || kind)}` : "");
+      const right = (avg > 0 ? `⭐ ${avg.toFixed(1)}` : "⭐ -") + (cnt ? ` · ${cnt}人評分` : "");
+
+      div.innerHTML = `
+        <div class="recMeta"><span>${left}</span><span>${escapeHtml(right)}</span></div>
+        <div class="recTitle">${escapeHtml(title || "（未命名作品）")}</div>
+        <div class="recNote">${cnt ? `資料來自全站匿名統計` : ""}</div>
+        ${img}
+      `;
+
+      box.appendChild(div);
+    });
+
+  }catch(err){
+    console.error(err);
+    box.innerHTML = `<div class="muted">讀取失敗：${escapeHtml(err.message || err)}</div>`;
+  }
+}
+
+window.MB_loadGlobalRecs = MB_loadGlobalRecs;
 
 
     $("btnRefreshPosts")?.addEventListener("click", async () => {
