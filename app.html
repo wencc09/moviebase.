@@ -224,9 +224,18 @@
         <h2>👤 我的帳戶</h2>
         <div class="muted" id="accInfo">讀取中…</div>
         <div class="hr"></div>
-        <div class="muted">
-        
+        <div class="toolRow">
+          <button class="btn" id="btnGoMyPosts" type="button">我發過的貼文</button>
+          <button class="btn" id="btnGoMyLikes" type="button">我按讚的貼文</button>
+          <button class="btn" id="btnGoMyComments" type="button">我留言過的貼文</button>
+          <!-- (可選) 想回到全部貼文就加這顆 -->
+          <button class="btn" id="btnGoAllPosts" type="button">全部貼文</button>
         </div>
+
+<div class="muted" id="feedHint" style="margin-top:10px;">
+  點上面按鈕後會跳到「漂浮影廳」並套用篩選。
+</div>
+
       </section>
 
     </div>
@@ -388,8 +397,40 @@
         acc.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才會有：我的貼文 / 已按讚收藏`;
       }
     });
+
+          // ✅ Account buttons -> go to hall + filter feed
+      function bindFeedBtn(id, mode){
+        const btn = document.getElementById(id);
+        if(!btn || btn.dataset.bound) return;
+        btn.dataset.bound = "1";
+
+        btn.addEventListener("click", async ()=>{
+          if(!MB_requireLogin("查看清單")) return;
+
+          // 先切到 hall（因為貼文牆在 tab-hall）
+          await safeGoTab("hall");
+
+          // 再套用篩選並刷新
+          if (typeof window.MB_showFeed === "function") {
+            await window.MB_showFeed(mode);
+          } else if (typeof window.MB_setFeedMode === "function" && typeof window.MB_refreshPosts === "function") {
+            window.MB_setFeedMode(mode);
+            await window.MB_refreshPosts(true);
+            document.getElementById("postList")?.scrollIntoView({behavior:"smooth", block:"start"});
+          } else {
+            toast("找不到貼文篩選函式（請確認 app.js 已加入 MB_showFeed / MB_setFeedMode）");
+          }
+        });
+      }
+
+      bindFeedBtn("btnGoMyPosts", "mine");
+      bindFeedBtn("btnGoMyLikes", "liked");
+      bindFeedBtn("btnGoMyComments", "commented");
+      bindFeedBtn("btnGoAllPosts", "all"); // (可選)
+
     
     </script>
+
   
     <div id="commentModal" class="mbModal" aria-hidden="true">
       <div class="mbModalBackdrop" data-close="1"></div>
