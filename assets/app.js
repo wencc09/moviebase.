@@ -46,17 +46,13 @@ function getDisplayName_() {
 function toast(msg) {
   const el = $("#toast");
   if (!el) return alert(msg);
+
   el.textContent = msg;
   el.style.display = "block";
   clearTimeout(toast._t);
   toast._t = setTimeout(() => (el.style.display = "none"), 2400);
-const el = $("#toast");
-if (!el) return alert(msg);
-el.textContent = msg;
-el.style.display = "block";
-clearTimeout(toast._t);
-toast._t = setTimeout(() => (el.style.display = "none"), 2400);
 }
+
 
 /* =========================
    API (robust JSON handling)
