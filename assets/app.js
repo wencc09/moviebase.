@@ -618,10 +618,11 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     if (mode === "mine") {
       if (!idToken) throw new Error("not logged in");
       payload = { action: "list_my_posts", idToken };
-    } else if (mode === "liked") {
+      } else if (mode === "liked") {
+      // 你的後端沒有 list_my_likes，所以改用 list_posts 再用 liked 欄位篩選
       if (!idToken) throw new Error("not logged in");
-      payload = { action: "list_my_likes", idToken };
-    } else if (mode === "commented") {
+      payload = { action: "list_posts", idToken, __clientFilter: "liked" };
+      } else if (mode === "commented") {
       if (!idToken) throw new Error("not logged in");
       payload = { action: "list_my_comments", idToken };
     } else {
@@ -637,7 +638,12 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     }
     if (!data.ok) throw new Error(data.error || "list_posts failed");
 
-    const cards = (data.rows || []).map(toCard);
+    let rows = data.rows || [];
+    if (payload.__clientFilter === "liked") {
+      rows = rows.filter(r => !!r.liked);
+    }
+    const cards = rows.map(toCard);
+
     cards.sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
     return cards;
   }
