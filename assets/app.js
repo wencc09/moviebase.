@@ -108,6 +108,7 @@ function toast(msg) {
     try { show("跳轉中…"); } catch(_) {}
   });
 })();
+})();   // ✅ 收外層 (function wireAccountJumpButtons(){ ... })()
 
 function mbLoading_(on, text = "讀取中…") {
   const el = document.getElementById("mbLoading");
