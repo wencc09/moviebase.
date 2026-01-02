@@ -1438,17 +1438,23 @@ function initNicknameUI_() {
 document.addEventListener("DOMContentLoaded", initNicknameUI_);
 
 // ✅ 保險：讓留言 Modal 一定可以關 + 預設關閉
-(function wireCommentModalFix(){
+document.addEventListener("DOMContentLoaded", wireCommentModalFix);
+
+function wireCommentModalFix(){
   const modal = document.getElementById("commentModal");
   if(!modal) return;
 
   const close = ()=>{
+    // ✅ 同時處理 aria + class（跟你 openCommentModal 的 is-open 對齊）
+    modal.classList.remove("is-open");
     modal.setAttribute("aria-hidden", "true");
   };
   const open = ()=>{
+    modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
   };
 
+  // 預設關閉
   close();
 
   modal.querySelectorAll("[data-close], .mbModalBackdrop").forEach(el=>{
@@ -1465,7 +1471,7 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
 
   window.MB_closeCommentModal = close;
   window.MB_openCommentModal = open;
-})(); // ✅ 這行如果不見，就會是 Unexpected end of input
+} // ✅ 這個大括號要存在
 
 
 // =========================
@@ -1476,73 +1482,69 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
 
   (function () {
 
-  function modeText_(mode){
-    if (mode === "mine") return "讀取中…正在載入你發過的貼文";
-    if (mode === "liked") return "讀取中…正在載入你按讚的貼文";
-    if (mode === "commented") return "讀取中…正在載入你留言過的貼文";
-    return "讀取中…";
-  }
-
-  async function go(mode) {
-    const msg = modeText_(mode);
-
-    // ✅ 先顯示 Loading（同頁/轉頁都先出現）
-    if (typeof window.mbLoading_ === "function") mbLoading_(true, msg);
-
-    const samePage = (typeof window.MB_showFeed === "function" && document.getElementById("postList"));
-
-    // 同頁：如果貼文牆存在，直接切模式刷新
-    if (samePage) {
-      try {
-        // ✅ 等它跑完再關（就算 MB_showFeed 不是 async 也 OK）
-        await Promise.resolve(window.MB_showFeed(mode));
-      } finally {
-        if (typeof window.mbLoading_ === "function") mbLoading_(false);
-      }
-      return;
+    function modeText_(mode){
+      if (mode === "mine") return "讀取中…正在載入你發過的貼文";
+      if (mode === "liked") return "讀取中…正在載入你按讚的貼文";
+      if (mode === "commented") return "讀取中…正在載入你留言過的貼文";
+      return "讀取中…";
     }
 
-    // 不同頁：用 localStorage + 轉頁（到貼文牆頁）
-    try {
-      localStorage.setItem("mb_feed_mode", mode);
-      // ✅ 讓新頁也知道要顯示 loading
-      localStorage.setItem("mb_loading_pending", "1");
-      localStorage.setItem("mb_loading_msg", msg);
-    } catch (_) {}
+    async function go(mode) {
+      const msg = modeText_(mode);
 
-    const base = FEED_PAGE_URL;
-    const sep = base.includes("?") ? "&" : "?";
-    const url = base + sep + "feed=" + encodeURIComponent(mode) + "#hall";
+      // ✅ 先顯示 Loading（同頁/轉頁都先出現）
+      if (typeof window.mbLoading_ === "function") mbLoading_(true, msg);
 
-    // ✅ 給瀏覽器 1 個 frame 的時間把 Loading 畫出來，再跳轉
-    requestAnimationFrame(() => {
-      setTimeout(() => { location.href = url; }, 30);
+      const samePage = (typeof window.MB_showFeed === "function" && document.getElementById("postList"));
+
+      // 同頁：如果貼文牆存在，先切到 hall，再切模式刷新
+      if (samePage) {
+        try {
+          if (typeof window.MB_goTab === "function") {
+            await Promise.resolve(window.MB_goTab("hall"));
+          }
+          await Promise.resolve(window.MB_showFeed(mode));
+        } finally {
+          if (typeof window.mbLoading_ === "function") mbLoading_(false);
+        }
+        return;
+      }
+
+      // 不同頁：用 localStorage + 轉頁（到貼文牆頁）
+      try {
+        localStorage.setItem("mb_feed_mode", mode);
+        // ✅ 讓新頁也知道要顯示 loading
+        localStorage.setItem("mb_loading_pending", "1");
+        localStorage.setItem("mb_loading_msg", msg);
+      } catch (_) {}
+
+      const base = FEED_PAGE_URL;
+      const sep = base.includes("?") ? "&" : "?";
+      const url = base + sep + "feed=" + encodeURIComponent(mode) + "#hall";
+
+      // ✅ 給瀏覽器 1 個 frame 的時間把 Loading 畫出來，再跳轉
+      requestAnimationFrame(() => {
+        setTimeout(() => { location.href = url; }, 30);
+      });
+    }
+
+    function bind(id, mode){
+      const btn = document.getElementById(id);
+      if (!btn || btn.dataset.bound) return;
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", () => { go(mode); });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      bind("btnGoMyPosts", "mine");
+      bind("btnGoMyLikes", "liked");
+      bind("btnGoMyComments", "commented");
+      bind("btnGoAllPosts", "all"); // ✅ 你 app.html 有這顆
     });
-  }
-
-  function bind(id, mode){
-    const btn = document.getElementById(id);
-    if (!btn || btn.dataset.bound) return;
-    btn.dataset.bound = "1";
-    btn.addEventListener("click", () => { go(mode); });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    bind("btnGoMyPosts", "mine");
-    bind("btnGoMyLikes", "liked");
-    bind("btnGoMyComments", "commented");
-  });
-})(); // ✅（修正1）補上外層 wireAccountJumpButtons 的結尾，避免 Unexpected end of input
+  })();
+})();  // ✅ 外層 IIFE 收尾一定要有
 
 
-   
-
-   // 初次載入 + 登入狀態變動時更新
-  render();
-  window.addEventListener("mb:auth", render);
-}
-
-document.addEventListener("DOMContentLoaded", initNicknameUI_);
 
 // ✅ 保險：讓留言 Modal 一定可以關 + 預設關閉
 (function wireCommentModalFix(){
