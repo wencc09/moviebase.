@@ -20,31 +20,24 @@ const MB = {
   state: {
     mode: "unknown",
     user: null,
-    profile: null, // ✅ 新增這行
-    // ...
+    profile: null,
+    idToken: "",
   }
-state: {
-mode: "unknown",
-user: null,
-profile: null, // ✅ 新增這行
-// ...
-}
 };
+window.MB = MB;
+
 
 
 const $ = (q, root = document) => root.querySelector(q);
 
 
 function getDisplayName_() {
-  const nick = (MB.state.profile && MB.state.profile.nickname) ? String(MB.state.profile.nickname).trim() : "";
+  const nick = (MB.state.profile?.nickname || "").trim();
   if (nick) return nick;
-  const gname = (MB.state.user && MB.state.user.name) ? String(MB.state.user.name).trim() : "";
+  const gname = (MB.state.user?.name || "").trim();
   return gname || "使用者";
-const nick = (MB.state.profile && MB.state.profile.nickname) ? String(MB.state.profile.nickname).trim() : "";
-if (nick) return nick;
-const gname = (MB.state.user && MB.state.user.name) ? String(MB.state.user.name).trim() : "";
-return gname || "使用者";
 }
+
 
 /* =========================
    Toast
@@ -2686,9 +2679,9 @@ try { await refresh(true); } catch (_) {}
 })();
 
 document.addEventListener("DOMContentLoaded", () => {
-  try { initNicknameUI(); } catch (e) {}
-try { initNicknameUI(); } catch (e) {}
+  try { initNicknameUI_(); } catch (e) {}
 });
+
 
 async function mbGetProfile_() {
   const idToken = localStorage.getItem("id_token");
