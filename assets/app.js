@@ -1532,7 +1532,6 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     bind("btnGoMyLikes", "liked");
     bind("btnGoMyComments", "commented");
   });
-})();
 })(); // ✅（修正1）補上外層 wireAccountJumpButtons 的結尾，避免 Unexpected end of input
 
 
