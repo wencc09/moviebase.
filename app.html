@@ -3,400 +3,402 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MovieBase｜主站</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MovieBase｜主站</title>
 
-  <!-- ✅ 先套用已儲存主題，避免閃一下 -->
-  <script>
-    (function(){
-      const t = localStorage.getItem("moviebase_theme") || localStorage.getItem("theme");
-      if(t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-    })();
-  </script>
+<!-- ✅ 先套用已儲存主題，避免閃一下 -->
+<script>
+(function(){
+const t = localStorage.getItem("moviebase_theme") || localStorage.getItem("theme");
+if(t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+})();
+</script>
 
-  <link rel="stylesheet" href="./assets/theme.css?v=2025122602">
-  <link rel="stylesheet" href="./assets/style.css?v=2025122602">
-  <link rel="stylesheet" href="./assets/records.css?v=2025122602">
+<link rel="stylesheet" href="./assets/theme.css?v=2025122602">
+<link rel="stylesheet" href="./assets/style.css?v=2025122602">
+<link rel="stylesheet" href="./assets/records.css?v=2025122602">
 
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <style>
-    .tabsWrap{ margin-top: 16px; display:grid; gap:14px; }
-    .tabPanel{ display:none; }
-    .tabPanel.is-on{ display:block; }
+<style>
+.tabsWrap{ margin-top: 16px; display:grid; gap:14px; }
+.tabPanel{ display:none; }
+.tabPanel.is-on{ display:block; }
 
-    .pill.is-active{
-      border-color: rgba(132,227,232,.35);
-      box-shadow: 0 0 0 4px rgba(132,227,232,.10);
-    }
+.pill.is-active{
+border-color: rgba(132,227,232,.35);
+box-shadow: 0 0 0 4px rgba(132,227,232,.10);
+}
 
-    .bottomNav{
-      position:fixed; left:12px; right:12px; bottom:12px; z-index:60;
-      border:1px solid var(--stroke);
-      background: rgba(10,14,26,.55);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-radius:18px;
-      display:none;
-      padding:10px;
-      gap:10px;
-      justify-content:space-between;
-    }
-    .bottomNav .pill{ flex:1; justify-content:center; white-space:nowrap; }
-    @media (max-width: 860px){
-      .bottomNav{ display:flex; }
-      .wrap{ padding-bottom: 120px; }
-      .navLinks{ display:none; }
-    }
+.bottomNav{
+position:fixed; left:12px; right:12px; bottom:12px; z-index:60;
+border:1px solid var(--stroke);
+background: rgba(10,14,26,.55);
+backdrop-filter: blur(14px);
+-webkit-backdrop-filter: blur(14px);
+border-radius:18px;
+display:none;
+padding:10px;
+gap:10px;
+justify-content:space-between;
+}
+.bottomNav .pill{ flex:1; justify-content:center; white-space:nowrap; }
+@media (max-width: 860px){
+.bottomNav{ display:flex; }
+.wrap{ padding-bottom: 120px; }
+.navLinks{ display:none; }
+}
 
-    .toolRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-  </style>
+.toolRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+</style>
 </head>
 
 <body>
-  <div class="bg-float"></div>
+<div class="bg-float"></div>
 
-  <div class="topbar">
-    <div class="nav">
-      <div class="brand">
-        <div class="logoDot"></div>
-        <button class="btn" id="themeToggle" type="button">Theme</button>
-        <div class="brandTitle">
-          <b>MovieBase</b>
-          <span>主站（四分頁）</span>
-        </div>
-      </div>
+<div class="topbar">
+<div class="nav">
+<div class="brand">
+<div class="logoDot"></div>
+<button class="btn" id="themeToggle" type="button">Theme</button>
+<div class="brandTitle">
+<b>MovieBase</b>
+<span>主站（四分頁）</span>
+</div>
+</div>
 
-      <div class="navLinks" id="appTabs">
-        <button class="pill is-active" type="button" data-tab="lobby">影院大廳</button>
-        <button class="pill" type="button" data-tab="hall">漂浮影廳</button>
-        <button class="pill" type="button" data-tab="records">觀影紀錄</button>
-        <button class="pill" type="button" data-tab="account">我的帳戶</button>
-      </div>
+<div class="navLinks" id="appTabs">
+<button class="pill is-active" type="button" data-tab="lobby">影院大廳</button>
+<button class="pill" type="button" data-tab="hall">漂浮影廳</button>
+<button class="pill" type="button" data-tab="records">觀影紀錄</button>
+<button class="pill" type="button" data-tab="account">我的帳戶</button>
+</div>
 
-      <div class="rightBox">
-        <span class="badge" id="authBadge">目前：讀取中…</span>
-        <img class="avatar" id="authPic" alt="">
-        <span class="badge" id="authName">...</span>
+<div class="rightBox">
+<span class="badge" id="authBadge">目前：讀取中…</span>
+<img class="avatar" id="authPic" alt="">
+<span class="badge" id="authName">...</span>
 
-        <button class="btn" id="btnOpenLogin" type="button">立即登入</button>
-        <button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
-      </div>
-    </div>
-  </div>
+<button class="btn" id="btnOpenLogin" type="button">立即登入</button>
+<button class="btn danger" id="btnLogout" type="button" style="display:none;">登出</button>
+</div>
+</div>
+</div>
 
-  <div class="wrap">
-    <div class="tabsWrap">
+<div class="wrap">
+<div class="tabsWrap">
 
-      <!-- ✅ lobby -->
-      <section class="card tabPanel is-on" id="tab-lobby">
-        <h2>🎬 影院大廳（主分頁）</h2>
+<!-- ✅ lobby -->
+<section class="card tabPanel is-on" id="tab-lobby">
+<h2>🎬 影院大廳（主分頁）</h2>
+<div class="muted">
+這裡是你的「房間入口」：你之後可以放置快速導覽、站內公告、最新貼文精選。
+</div>
+<div class="hr"></div>
+
+<section class="card" id="nickCard" style="margin-top:12px; display:none;">
+<div class="cardTitle">暱稱設定</div>
+<div class="muted" id="nickStatus" style="margin:8px 0;">讀取中...</div>
+
+<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+<input id="nicknameInput" type="text" maxlength="30"
+placeholder="輸入你的暱稱（最多30字）"
+style="flex:1; min-width:220px;"
+/>
+<button class="btn" id="btnSaveNickname" type="button">儲存</button>
+</div>
+
+<div class="muted" style="margin-top:8px;">
+※ 暱稱會用於貼文/留言顯示（之後我們再接到貼文牆）
+</div>
+</section>
+
+<section class="card" id="globalRecCard" style="margin-top:12px;">
+<div class="cardTitle" style="display:flex; align-items:center; justify-content:space-between;">
+<span> 站內熱門推薦</span>
+<button class="btn" id="btnGlobalRecReload" type="button">重新整理</button>
+</div>
+
+<div class="muted" style="margin-top:6px;">
+
+</div>
+
+<!-- cardsGrid / recCard 你已經有 records.css，所以這裡能直接沿用 -->
+<div class="cardsGrid" id="globalRecBox" style="margin-top:10px;"></div>
+</section>
+
+<div class="toolRow">
+<button class="btn" type="button" data-tabjump="hall">去漂浮影廳</button>
+<button class="btn" type="button" data-tabjump="records">去觀影紀錄</button>
+</div>
+</section>
+
+<section id="tab-hall" class="tabPanel">
+<div class="cinemaScreen">
+<div class="cinemaBezel" aria-hidden="true"></div>
+<div class="cinemaGrain" aria-hidden="true"></div>
+
+<div class="cinemaHeader">
+<div class="cinemaTitle">
+<div class="cinemaIcon">🍿</div>
+<div>
+<div class="hTitle">漂浮影廳</div>
+<div class="hSub">像在看電影一樣滑動貼文。用 #hashtag 或關鍵字搜尋同好。</div>
+</div>
+</div>
+
+<div class="cinemaActions">
+<input class="input" id="postSearch" placeholder="搜尋 #hashtag 或關鍵字…" />
+<button class="btn" id="btnRefreshPosts" type="button">更新</button>
+</div>
+</div>
+
+<div class="cinemaBody">
+<!-- 可伸縮：避免寬度不夠、也不會擠壞畫面 -->
+<details class="composer" id="composerBox">
+<summary class="composerSummary">
+<span>＋ 新增貼文</span>
+<span class="muted" id="composerHint">（登入後可發文 / 按讚 / 留言）</span>
+</summary>
+
+<form id="postForm" class="composerForm">
+<div class="row">
+<input class="input" id="postTitle" placeholder="標題（可留空）" maxlength="40" />
+<select class="input" id="postKind">
+<option value="movie">電影</option>
+<option value="series">影集</option>
+<option value="anime">動畫</option>
+<option value="other">其他</option>
+</select>
+</div>
+
+<label class="field">
+<span class="label">照片（最多4張）</span>
+<input id="postPhotos" type="file" accept="image/*" multiple />
+<div id="photoHint" class="muted">可選 1～4 張（建議每張 1.5MB 內）</div>
+<div id="photoPreview" class="photoPreview"></div>
+</label>
+
+<textarea class="input" id="postContent" rows="3"
+placeholder="想說什麼？"
+maxlength="500"></textarea>
+
+<div class="row">
+<input class="input" id="postTags" placeholder="#hashtag（用空白分隔）" />
+<select class="input" id="postMood">
+<option value="5">★★★★★</option>
+<option value="4">★★★★</option>
+<option value="3">★★★</option>
+<option value="2"> ★★</option>
+<option value="1"> ★</option>
+</select>
+<button class="btn primary" id="btnPostSubmit" type="submit">發佈</button>
+</div>
+
+<div class="muted" style="line-height:1.5">
+訪客只能瀏覽；登入後才能發文/按讚/留言（符合你的權限矩陣）。 
+</div>
+</form>
+</details>
+
+<div id="postList" class="postList"></div>
+
+<div class="cinemaVignette" aria-hidden="true"></div>
+</div>
+</div>
+</section>
+
+
+<!-- ✅ records -->
+<section class="card tabPanel" id="tab-records">
+<div id="recordsMount">
+<div class="muted">Records 載入中...</div>
+</div>
+</section>
+
+
+<!-- ✅ account -->
+<section class="card tabPanel" id="tab-account">
+<h2>👤 我的帳戶</h2>
+<div class="muted" id="accInfo">讀取中…</div>
+<div class="hr"></div>
         <div class="muted">
-          這裡是你的「房間入口」：你之後可以放置快速導覽、站內公告、最新貼文精選。
-        </div>
-        <div class="hr"></div>
-
-        <section class="card" id="nickCard" style="margin-top:12px; display:none;">
-          <div class="cardTitle">暱稱設定</div>
-          <div class="muted" id="nickStatus" style="margin:8px 0;">讀取中...</div>
         
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input id="nicknameInput" type="text" maxlength="30"
-              placeholder="輸入你的暱稱（最多30字）"
-              style="flex:1; min-width:220px;"
-            />
-            <button class="btn" id="btnSaveNickname" type="button">儲存</button>
-          </div>
-        
-          <div class="muted" style="margin-top:8px;">
-            ※ 暱稱會用於貼文/留言顯示（之後我們再接到貼文牆）
-          </div>
-        </section>
-
-        <section class="card" id="globalRecCard" style="margin-top:12px;">
-          <div class="cardTitle" style="display:flex; align-items:center; justify-content:space-between;">
-            <span> 站內熱門推薦</span>
-            <button class="btn" id="btnGlobalRecReload" type="button">重新整理</button>
-          </div>
-        
-          <div class="muted" style="margin-top:6px;">
-            
-          </div>
-        
-          <!-- cardsGrid / recCard 你已經有 records.css，所以這裡能直接沿用 -->
-          <div class="cardsGrid" id="globalRecBox" style="margin-top:10px;"></div>
-        </section>
-
-        <div class="toolRow">
-          <button class="btn" type="button" data-tabjump="hall">去漂浮影廳</button>
-          <button class="btn" type="button" data-tabjump="records">去觀影紀錄</button>
-        </div>
-      </section>
-
-      <section id="tab-hall" class="tabPanel">
-      <div class="cinemaScreen">
-        <div class="cinemaBezel" aria-hidden="true"></div>
-        <div class="cinemaGrain" aria-hidden="true"></div>
-    
-        <div class="cinemaHeader">
-          <div class="cinemaTitle">
-            <div class="cinemaIcon">🍿</div>
-            <div>
-              <div class="hTitle">漂浮影廳</div>
-              <div class="hSub">像在看電影一樣滑動貼文。用 #hashtag 或關鍵字搜尋同好。</div>
-            </div>
-          </div>
-    
-          <div class="cinemaActions">
-            <input class="input" id="postSearch" placeholder="搜尋 #hashtag 或關鍵字…" />
-            <button class="btn" id="btnRefreshPosts" type="button">更新</button>
-          </div>
-        </div>
-    
-        <div class="cinemaBody">
-          <!-- 可伸縮：避免寬度不夠、也不會擠壞畫面 -->
-          <details class="composer" id="composerBox">
-            <summary class="composerSummary">
-              <span>＋ 新增貼文</span>
-              <span class="muted" id="composerHint">（登入後可發文 / 按讚 / 留言）</span>
-            </summary>
-    
-            <form id="postForm" class="composerForm">
-              <div class="row">
-                <input class="input" id="postTitle" placeholder="標題（可留空）" maxlength="40" />
-                <select class="input" id="postKind">
-                  <option value="movie">電影</option>
-                  <option value="series">影集</option>
-                  <option value="anime">動畫</option>
-                  <option value="other">其他</option>
-                </select>
-              </div>
-
-              <label class="field">
-                <span class="label">照片（最多4張）</span>
-                <input id="postPhotos" type="file" accept="image/*" multiple />
-                <div id="photoHint" class="muted">可選 1～4 張（建議每張 1.5MB 內）</div>
-                <div id="photoPreview" class="photoPreview"></div>
-              </label>
-    
-              <textarea class="input" id="postContent" rows="3"
-                placeholder="想說什麼？"
-                maxlength="500"></textarea>
-    
-              <div class="row">
-                <input class="input" id="postTags" placeholder="#hashtag（用空白分隔）" />
-                <select class="input" id="postMood">
-                  <option value="5">★★★★★</option>
-                  <option value="4">★★★★</option>
-                  <option value="3">★★★</option>
-                  <option value="2"> ★★</option>
-                  <option value="1"> ★</option>
-                </select>
-                <button class="btn primary" id="btnPostSubmit" type="submit">發佈</button>
-              </div>
-    
-              <div class="muted" style="line-height:1.5">
-                訪客只能瀏覽；登入後才能發文/按讚/留言（符合你的權限矩陣）。 
-              </div>
-            </form>
-          </details>
-    
-          <div id="postList" class="postList"></div>
-    
-          <div class="cinemaVignette" aria-hidden="true"></div>
-        </div>
-      </div>
-    </section>
-
-
-    <!-- ✅ records -->
-    <section class="card tabPanel" id="tab-records">
-      <div id="recordsMount">
-        <div class="muted">Records 載入中...</div>
-      </div>
-    </section>
-
-
-      <!-- ✅ account -->
-      <section class="card tabPanel" id="tab-account">
-        <h2>👤 我的帳戶</h2>
-        <div class="muted" id="accInfo">讀取中…</div>
-        <div class="hr"></div>
         <div class="toolRow">
           <button class="btn" id="btnGoMyPosts" type="button">我發過的貼文</button>
           <button class="btn" id="btnGoMyLikes" type="button">我按讚的貼文</button>
           <button class="btn" id="btnGoMyComments" type="button">我留言過的貼文</button>
           <!-- (可選) 想回到全部貼文就加這顆 -->
           <button class="btn" id="btnGoAllPosts" type="button">全部貼文</button>
-        </div>
+</div>
 
 <div class="muted" id="feedHint" style="margin-top:10px;">
   點上面按鈕後會跳到「漂浮影廳」並套用篩選。
 </div>
 
-      </section>
+</section>
 
-    </div>
-  </div>
+</div>
+</div>
 
-  <nav class="bottomNav" id="bottomNav">
-    <button class="pill is-active" type="button" data-tab="lobby">大廳</button>
-    <button class="pill" type="button" data-tab="hall">影廳</button>
-    <button class="pill" type="button" data-tab="records">紀錄</button>
-    <button class="pill" type="button" data-tab="account">帳戶</button>
-  </nav>
+<nav class="bottomNav" id="bottomNav">
+<button class="pill is-active" type="button" data-tab="lobby">大廳</button>
+<button class="pill" type="button" data-tab="hall">影廳</button>
+<button class="pill" type="button" data-tab="records">紀錄</button>
+<button class="pill" type="button" data-tab="account">帳戶</button>
+</nav>
 
-  <!-- 登入 modal -->
-  <div class="modal" id="loginModal">
-    <div class="modalBox fadeIn">
-      <h3>登入以啟用完整功能</h3>
-      <div class="small">Google 用戶才可紀錄與互動；訪客只能瀏覽。</div>
-      <div class="hr"></div>
-      <div id="gsiBtn"></div>
-      <div class="hr"></div>
-      <button class="btn" id="btnGuest" type="button">我先用訪客</button>
-    </div>
-  </div>
+<!-- 登入 modal -->
+<div class="modal" id="loginModal">
+<div class="modalBox fadeIn">
+<h3>登入以啟用完整功能</h3>
+<div class="small">Google 用戶才可紀錄與互動；訪客只能瀏覽。</div>
+<div class="hr"></div>
+<div id="gsiBtn"></div>
+<div class="hr"></div>
+<button class="btn" id="btnGuest" type="button">我先用訪客</button>
+</div>
+</div>
 
-  <div class="toast" id="toast"></div>
+<div class="toast" id="toast"></div>
 
-  <script src="./assets/app.js?v=20251226_3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-  <script src="./assets/records-ui.js?v=20251226_3" defer></script>
+<script src="./assets/app.js?v=20251226_2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="./assets/records-ui.js?v=20251226_3" defer></script>
 
-  <script>
-    (function(){
-      function tryMount(){
-        if(!window.Records || !Records.mount) return;
-  
-        // 你主站的 records hash 是 #records
-        const inRecords = (location.hash || "").includes("records");
-        const mountEl = document.getElementById("recordsMount");
-        if(!inRecords || !mountEl) return;
-  
-        // 避免重複掛載
-        if(mountEl.dataset.mounted === "1") return;
-        mountEl.dataset.mounted = "1";
-  
-        Records.mount(mountEl);
-      }
-  
-      window.addEventListener("hashchange", tryMount);
-      window.addEventListener("load", () => setTimeout(tryMount, 50));
-  
-      // 保險（有些 SPA 不一定觸發 hashchange）
-      setInterval(tryMount, 600);
-    })();
-  </script>
+<script>
+(function(){
+function tryMount(){
+if(!window.Records || !Records.mount) return;
 
+// 你主站的 records hash 是 #records
+const inRecords = (location.hash || "").includes("records");
+const mountEl = document.getElementById("recordsMount");
+if(!inRecords || !mountEl) return;
 
-  <script>
-    function waitForMBReady(timeoutMs = 6000){
-      const start = Date.now();
-      return new Promise((resolve)=>{
-        const tick = ()=>{
-          if(window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
-          if(Date.now() - start > timeoutMs) return resolve(false);
-          setTimeout(tick, 80);
-        };
-        tick();
-      });
-    }
+// 避免重複掛載
+if(mountEl.dataset.mounted === "1") return;
+mountEl.dataset.mounted = "1";
 
-    function setActivePills(tab){
-      document.querySelectorAll("[data-tab]").forEach(el=>{
-        el.classList.toggle("is-active", el.dataset.tab === tab);
-      });
-    }
+Records.mount(mountEl);
+}
 
-    function showTab(tab){
-      const tabs = ["lobby","hall","records","account"];
-      tabs.forEach(t=>{
-        const panel = document.getElementById("tab-"+t);
-        if(!panel) return;
-        panel.classList.toggle("is-on", t === tab);
-      });
-      setActivePills(tab);
-      history.replaceState(null, "", "#"+tab);
-    }
+window.addEventListener("hashchange", tryMount);
+window.addEventListener("load", () => setTimeout(tryMount, 50));
 
-    async function safeGoTab(tab){
-      if(tab === "records"){
-        if(!MB_requireLogin("觀影紀錄")) {
-          showTab("lobby");
-          return;
-        }
-      }
-    
-      showTab(tab);
-    
-      // ✅ 切到大廳就載入站內推薦（若函式存在）
-      if(tab === "lobby" && typeof window.MB_loadGlobalRecs === "function"){
-        window.MB_loadGlobalRecs();
-      }
-    }
-    
-    // ✅ 讓 records-ui.js 可以呼叫切分頁（很重要）
-    window.MB_goTab = safeGoTab;
+// 保險（有些 SPA 不一定觸發 hashchange）
+setInterval(tryMount, 600);
+})();
+</script>
 
 
-    window.addEventListener("load", async ()=>{
-      await waitForMBReady();
-      
-      if (!window.MB) {
-        console.error("app.js 載入失敗，MB 沒建立（先修 app.js 的 SyntaxError）");
-        return;
-      }
+<script>
+function waitForMBReady(timeoutMs = 6000){
+const start = Date.now();
+return new Promise((resolve)=>{
+const tick = ()=>{
+if(window.MB && MB.state && MB.state.mode && MB.state.mode !== "unknown") return resolve(true);
+if(Date.now() - start > timeoutMs) return resolve(false);
+setTimeout(tick, 80);
+};
+tick();
+});
+}
+
+function setActivePills(tab){
+document.querySelectorAll("[data-tab]").forEach(el=>{
+el.classList.toggle("is-active", el.dataset.tab === tab);
+});
+}
+
+function showTab(tab){
+const tabs = ["lobby","hall","records","account"];
+tabs.forEach(t=>{
+const panel = document.getElementById("tab-"+t);
+if(!panel) return;
+panel.classList.toggle("is-on", t === tab);
+});
+setActivePills(tab);
+history.replaceState(null, "", "#"+tab);
+}
+
+async function safeGoTab(tab){
+if(tab === "records"){
+if(!MB_requireLogin("觀影紀錄")) {
+showTab("lobby");
+return;
+}
+}
+
+showTab(tab);
+
+// ✅ 切到大廳就載入站內推薦（若函式存在）
+if(tab === "lobby" && typeof window.MB_loadGlobalRecs === "function"){
+window.MB_loadGlobalRecs();
+}
+}
+
+// ✅ 讓 records-ui.js 可以呼叫切分頁（很重要）
+window.MB_goTab = safeGoTab;
 
 
-      const hash = (location.hash || "#lobby").slice(1);
-      const wanted = ["lobby","hall","records","account"].includes(hash) ? hash : "lobby";
-      await safeGoTab(wanted);
+window.addEventListener("load", async ()=>{
+await waitForMBReady();
 
-      document.getElementById("appTabs")?.addEventListener("click",(e)=>{
-        const b = e.target.closest("[data-tab]");
-        if(!b) return;
-        safeGoTab(b.dataset.tab);
-      });
-
-      document.getElementById("bottomNav")?.addEventListener("click",(e)=>{
-        const b = e.target.closest("[data-tab]");
-        if(!b) return;
-        safeGoTab(b.dataset.tab);
-      });
-
-      document.querySelectorAll("[data-tabjump]").forEach(btn=>{
-        btn.addEventListener("click", ()=> safeGoTab(btn.dataset.tabjump));
-      });
-
-      // records guard text
-      // records guard text
-      const recordsGuard = document.getElementById("recordsGuardText");
-      if (recordsGuard) {
-        recordsGuard.textContent =
-          (MB.state.mode === "user")
-            ? "✅ 已登入：可以開始做紀錄 UI（下一步接資料）"
-            : "🔒 訪客：此頁會被擋（已符合規格，點功能會跳登入）";
-      }
-      
-      document.getElementById("btnAddRecord")?.addEventListener("click", ()=>{
-        if(!MB_requireLogin("新增紀錄")) return;
-        toast("下一步才會做：新增紀錄表單");
-      });
+if (!window.MB) {
+console.error("app.js 載入失敗，MB 沒建立（先修 app.js 的 SyntaxError）");
+return;
+}
 
 
-      // account info
-      const acc = document.getElementById("accInfo");
-      const isUser = (MB.state.mode === "user" && MB.state.user);
-      if(isUser){
-        const nm = MB.state.user.name || MB.state.user.email || "";
-        acc.innerHTML = `✅ 已登入<br>暱稱：<b>${nm}</b>`;
-      }else{
-        acc.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才會有：我的貼文 / 已按讚收藏`;
-      }
-    });
+const hash = (location.hash || "#lobby").slice(1);
+const wanted = ["lobby","hall","records","account"].includes(hash) ? hash : "lobby";
+await safeGoTab(wanted);
+
+document.getElementById("appTabs")?.addEventListener("click",(e)=>{
+const b = e.target.closest("[data-tab]");
+if(!b) return;
+safeGoTab(b.dataset.tab);
+});
+
+document.getElementById("bottomNav")?.addEventListener("click",(e)=>{
+const b = e.target.closest("[data-tab]");
+if(!b) return;
+safeGoTab(b.dataset.tab);
+});
+
+document.querySelectorAll("[data-tabjump]").forEach(btn=>{
+btn.addEventListener("click", ()=> safeGoTab(btn.dataset.tabjump));
+});
+
+// records guard text
+// records guard text
+const recordsGuard = document.getElementById("recordsGuardText");
+if (recordsGuard) {
+recordsGuard.textContent =
+(MB.state.mode === "user")
+? "✅ 已登入：可以開始做紀錄 UI（下一步接資料）"
+: "🔒 訪客：此頁會被擋（已符合規格，點功能會跳登入）";
+}
+
+document.getElementById("btnAddRecord")?.addEventListener("click", ()=>{
+if(!MB_requireLogin("新增紀錄")) return;
+toast("下一步才會做：新增紀錄表單");
+});
+
+
+// account info
+const acc = document.getElementById("accInfo");
+const isUser = (MB.state.mode === "user" && MB.state.user);
+if(isUser){
+const nm = MB.state.user.name || MB.state.user.email || "";
+acc.innerHTML = `✅ 已登入<br>暱稱：<b>${nm}</b>`;
+}else{
+acc.innerHTML = `👀 訪客模式（只能觀看）<br>登入後才會有：我的貼文 / 已按讚收藏`;
+}
+});
 
           // ✅ Account buttons -> go to hall + filter feed
       function bindFeedBtn(id, mode){
@@ -428,41 +430,32 @@
       bindFeedBtn("btnGoMyComments", "commented");
       bindFeedBtn("btnGoAllPosts", "all"); // (可選)
 
-    
-    </script>
 
-  
-    <div id="commentModal" class="mbModal" aria-hidden="true">
-      <div class="mbModalBackdrop" data-close="1"></div>
-    
-      <div class="mbModalCard" role="dialog" aria-modal="true">
-        <div class="mbModalHead">
-          <div class="mbModalTitle" id="commentModalTitle">留言</div>
-          <button class="mbModalClose" id="commentModalClose" type="button">✕</button>
-        </div>
-    
-        <div id="commentList" class="commentList"></div>
-    
-        <div class="commentComposer">
-          <div id="commentHint" class="muted"></div>
-          <form id="commentForm" class="commentForm">
-            <input id="commentInput" type="text" placeholder="寫下留言…" maxlength="500" />
-            <button id="commentSend" type="submit">送出</button>
-          </form>
-        </div>
-      </div>
-    </div>
+</script>
 
-  
-    <!-- ✅ Global Loading Overlay -->
-    <div id="mbLoading" class="mbLoading" aria-hidden="true">
-      <div class="mbLoadingCard">
-        <span class="mbSpinner" aria-hidden="true"></span>
-        <span id="mbLoadingText">讀取中…</span>
-      </div>
-    </div>
 
-    
-    
-    </body>
-    </html>
+<div id="commentModal" class="mbModal" aria-hidden="true">
+<div class="mbModalBackdrop" data-close="1"></div>
+
+<div class="mbModalCard" role="dialog" aria-modal="true">
+<div class="mbModalHead">
+<div class="mbModalTitle" id="commentModalTitle">留言</div>
+<button class="mbModalClose" id="commentModalClose" type="button">✕</button>
+</div>
+
+<div id="commentList" class="commentList"></div>
+
+<div class="commentComposer">
+<div id="commentHint" class="muted"></div>
+<form id="commentForm" class="commentForm">
+<input id="commentInput" type="text" placeholder="寫下留言…" maxlength="500" />
+<button id="commentSend" type="submit">送出</button>
+</form>
+</div>
+</div>
+</div>
+
+
+
+</body>
+</html>
