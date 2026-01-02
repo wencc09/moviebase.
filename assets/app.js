@@ -1062,3 +1062,82 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     bind("btnGoAllPosts", "all");
   });
 })();
+
+
+/* =========================
+   Lobby: 站內熱門推薦
+   需要：#btnGlobalRecReload、#globalRecBox、apiPOST()
+========================= */
+(function () {
+  // 防止重複注入造成 redeclare
+  if (window.__MB_GLOBAL_RECS_INITED__) return;
+  window.__MB_GLOBAL_RECS_INITED__ = true;
+
+  function esc_(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;",
+      '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function renderGlobalRec_(it) {
+    const title = esc_(it?.title || it?.name || "未命名");
+    const kind = esc_(it?.kind || "");
+    const poster = it?.posterUrl || it?.poster || it?.coverUrl || "";
+    const avg = (it?.avgRating != null) ? `⭐ ${it.avgRating}` : "";
+    const count = (it?.count != null) ? `（${it.count}）` : "";
+
+    return `
+      <div class="card" style="padding:12px; display:flex; gap:12px; align-items:center;">
+        ${poster
+          ? `<img src="${poster}" alt="" style="width:54px;height:76px;object-fit:cover;border-radius:10px;">`
+          : `<div style="width:54px;height:76px;border-radius:10px;opacity:.25;border:1px solid rgba(255,255,255,.25)"></div>`
+        }
+        <div style="min-width:0">
+          <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
+          <div style="opacity:.75; font-size:13px;">${kind} ${avg} ${count}</div>
+        </div>
+      </div>`;
+  }
+
+  async function MB_loadGlobalRecs(limit = 6) {
+    const box = document.getElementById("globalRecBox");
+    if (!box) return;
+
+    box.innerHTML = `<div style="opacity:.7; padding:8px 0;">讀取中...</div>`;
+
+    const payload = { action: "records.recommendGlobal", limit, _t: Date.now() };
+    const idToken = localStorage.getItem("id_token");
+    if (idToken) payload.idToken = idToken;
+
+    const res = await apiPOST(payload);
+    if (!res || !res.ok) throw new Error(res?.error || "recommendGlobal failed");
+
+    const items = Array.isArray(res.items) ? res.items : [];
+    if (!items.length) {
+      box.innerHTML = `<div style="opacity:.7; padding:8px 0;">目前沒有推薦</div>`;
+      return;
+    }
+    box.innerHTML = items.map(renderGlobalRec_).join("");
+  }
+
+  // 掛到全域方便你在 Console 直接測
+  window.MB_loadGlobalRecs = MB_loadGlobalRecs;
+
+  function initGlobalRecs_() {
+    const btn = document.getElementById("btnGlobalRecReload");
+    if (btn && !btn.dataset.bound) {
+      btn.addEventListener("click", () => MB_loadGlobalRecs(6).catch(console.error));
+      btn.dataset.bound = "1";
+    }
+    // 頁面一進來先載一次
+    MB_loadGlobalRecs(6).catch(console.error);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initGlobalRecs_, { once: true });
+  } else {
+    initGlobalRecs_();
+  }
+})();
+
