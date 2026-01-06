@@ -283,6 +283,7 @@ function initGoogle(retry = 0) {
 
         closeLoginModal();
         toast("登入成功");
+        goHomeIfEntry_();
       } catch (e) {
         console.error(e);
         setModeGuest();
@@ -326,10 +327,14 @@ async function boot() {
   byId("btnLogin2")?.addEventListener("click", openLogin);
 
   const guestHandler = () => {
-    setModeGuest();
-    closeLoginModal();
-    toast("已用訪客模式進入（禁止紀錄與互動）");
-  };
+     setModeGuest();
+     closeLoginModal();
+     toast("已用訪客模式進入（禁止紀錄與互動）");
+   
+     // ✅ 訪客也要進主頁
+     goHomeIfEntry_();
+   };
+
   byId("btnGuest")?.addEventListener("click", guestHandler);
   byId("btnGuest2")?.addEventListener("click", guestHandler);
 
@@ -342,18 +347,33 @@ async function boot() {
   byId("btnLogoutTop")?.addEventListener("click", logoutHandler);
 
   // restore mode
-  const savedMode = localStorage.getItem("mode");
-  if (savedMode === "guest") {
-    setModeGuest();
-  } else {
-    try {
-      const user = await verifyMe();
-      setModeUser(user);
-    } catch (e) {
-      console.warn(e);
-      setModeGuest();
-    }
-  }
+  // restore mode
+   const savedMode = localStorage.getItem("mode");
+   
+   if (savedMode === "guest") {
+     setModeGuest();
+     goHomeIfEntry_(); // ✅ 如果上次就是訪客，直接進主頁
+   } else {
+     const hasToken = !!getIdToken_();
+   
+     if (hasToken) {
+       try {
+         const user = await verifyMe();
+         setModeUser(user);
+         goHomeIfEntry_(); // ✅ 如果已登入，直接進主頁
+       } catch (e) {
+         console.warn(e);
+         setModeGuest();
+         openLoginModal({ reset: true });
+       }
+     } else {
+       // ✅ 第一次進來（沒選過訪客、也沒 token），留在入口頁讓他選
+       MB.state.mode = "unknown";
+       renderAuthUI();
+       openLoginModal({ reset: true });
+     }
+   }
+   }
 
   initGoogle();
 }
