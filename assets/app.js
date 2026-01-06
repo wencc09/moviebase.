@@ -283,7 +283,12 @@ function initGoogle(retry = 0) {
 
         closeLoginModal();
         toast("登入成功");
-        goHomeIfEntry_();
+         
+         // ✅ 直接跳主頁（最保險）
+        setTimeout(() => {
+           location.assign("./app.html");
+        }, 50);
+
       } catch (e) {
         console.error(e);
         setModeGuest();
