@@ -323,10 +323,30 @@ async function boot() {
   const m = getModalEl();
   m?.addEventListener("click", (e) => { if (e.target === m) closeLoginModal(); });
 
-  const openLogin = () => openLoginModal({ reset: true });
-  byId("btnOpenLogin")?.addEventListener("click", openLogin);
-  byId("btnLogin")?.addEventListener("click", openLogin);
-  byId("btnLogin2")?.addEventListener("click", openLogin);
+  const openChooser = () => openLoginModal({ reset: true }); // 身分選擇頁
+
+   const openGooglePage = () => {
+     openLoginModal({ reset: false }); // 不要 reset，避免把 googleBox 藏掉
+     byId("chooseBox")?.classList.add("hidden");
+     byId("googleBox")?.classList.remove("hidden");
+   
+     // ✅ 確保 Google 按鈕被 render（保險：每次打開都試一次）
+     initGoogle();
+   };
+   
+   // 右上角「立即登入」：直接進 Google 登入頁（你想要的行為）
+   byId("btnOpenLogin")?.addEventListener("click", openGooglePage);
+   
+   // 如果你頁面上有其他登入按鈕，也走 Google 登入頁
+   byId("btnLogin")?.addEventListener("click", openGooglePage);
+   byId("btnLogin2")?.addEventListener("click", openGooglePage);
+   
+   // 如果你有「返回身分選擇」按鈕（你圖上有），讓它回到 chooseBox
+   byId("btnBackChoice")?.addEventListener("click", () => {
+     byId("chooseBox")?.classList.remove("hidden");
+     byId("googleBox")?.classList.add("hidden");
+   });
+
 
   const guestHandler = () => {
     setModeGuest();
