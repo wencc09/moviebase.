@@ -284,10 +284,7 @@ function initGoogle(retry = 0) {
         closeLoginModal();
         toast("登入成功");
          
-         // ✅ 直接跳主頁（最保險）
-        setTimeout(() => {
-           location.assign("./app.html");
-        }, 50);
+         
 
       } catch (e) {
         console.error(e);
@@ -349,34 +346,33 @@ async function boot() {
   byId("btnLogoutTop")?.addEventListener("click", logoutHandler);
 
   // restore mode
-  const savedMode = localStorage.getItem("mode");
-
-  if (savedMode === "guest") {
-    setModeGuest();
-    goHomeIfEntry_(); // ✅ 如果上次就是訪客，直接進主頁
-  } else {
-    const hasToken = !!getIdToken_();
-
-    if (hasToken) {
-      try {
-        const user = await verifyMe();
-        setModeUser(user);
-        goHomeIfEntry_(); // ✅ 如果已登入，直接進主頁
-      } catch (e) {
-        console.warn(e);
-        setModeGuest();
-        openLoginModal({ reset: true });
-      }
-    } else {
-      // ✅ 第一次進來（沒選過訪客、也沒 token），留在入口頁讓他選
-      MB.state.mode = "unknown";
-      renderAuthUI();
-      openLoginModal({ reset: true });
-    }
-  }
-
-  initGoogle();
-}
+  // restore mode
+   const savedMode = localStorage.getItem("mode");
+   
+   if (savedMode === "guest") {
+     // ✅ 只更新狀態，不自動跳走（保留介紹頁）
+     setModeGuest();
+   } else {
+     const hasToken = !!getIdToken_();
+   
+     if (hasToken) {
+       try {
+         const user = await verifyMe();
+         setModeUser(user);
+         // ✅ 不自動跳走，保留介紹頁
+       } catch (e) {
+         console.warn(e);
+         setModeGuest();
+         openLoginModal({ reset: true });
+       }
+     } else {
+       MB.state.mode = "unknown";
+       renderAuthUI();
+       // 你想一進來就跳出選擇框就留著
+       openLoginModal({ reset: true });
+     }
+   }
+   }
 
 window.addEventListener("load", boot);
 
