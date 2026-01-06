@@ -870,10 +870,23 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     openCommentModal(btn.dataset.commentId, btn.dataset.commentTitle || "", btn);
   });
 
+  // --- Comment modal events (bind after DOM ready) ---
+function bindCommentModalEventsOnce_() {
+  const modal = byId("commentModal");
+  if (!modal) return;
+  if (modal.dataset.bound === "1") return; // 防止重複綁
+  modal.dataset.bound = "1";
+
+  // 關閉：叉叉 / 背景
   byId("commentModalClose")?.addEventListener("click", closeCommentModal);
   qs("#commentModal .mbModalBackdrop")?.addEventListener("click", closeCommentModal);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeCommentModal(); });
 
+  // Esc 關閉（這個綁在 document 沒差，但也一起放這裡，邏輯集中）
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeCommentModal();
+  });
+
+  // 送出留言
   byId("commentForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!requireLogin("留言")) return;
@@ -892,7 +905,10 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     const optimisticRow = { authorName: myName, ts: new Date().toISOString(), content: text };
 
     const cached = COMMENT_CACHE.get(postId);
+
+    // ⚠️ 這裡如果你原本是 .(cached?.rows...) 那是錯的，必須是 ...(展開運算子)
     const rowsNow = [optimisticRow, ...(cached?.rows || [])].slice(0, 50);
+
     COMMENT_CACHE.set(postId, { at: Date.now(), rows: rowsNow });
     renderComments(rowsNow);
     if (input) input.value = "";
@@ -924,6 +940,14 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
       if (send) send.disabled = (MB.state.mode !== "user");
     }
   });
+}
+
+// DOM 還沒載完就等 DOMContentLoaded，載完就立刻綁
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bindCommentModalEventsOnce_, { once: true });
+} else {
+  bindCommentModalEventsOnce_();
+}
 
   // --- Post form ---
   byId("postPhotos")?.addEventListener("change", () => {
