@@ -298,6 +298,20 @@ function initGoogle(retry = 0) {
   }
 }
 
+// ---------- Page jump helper ----------
+const APP_HOME_URL = "./app.html";
+
+function isAppPage_() {
+  // 兩種判斷都加，避免路徑不一致
+  return /(^|\/)app\.html$/i.test(location.pathname) || !!document.getElementById("postList");
+}
+
+function goHomeIfEntry_() {
+  // 只有在入口頁才跳，避免在 app.html 裡面亂跳造成迴圈
+  if (!isAppPage_()) location.href = APP_HOME_URL;
+}
+
+
 // ---------- Boot ----------
 async function boot() {
   initThemeToggle();
