@@ -827,33 +827,44 @@ document.addEventListener("DOMContentLoaded", initNicknameUI_);
     renderComments(rows);
   }
 
-  function openCommentModal(postId, title, btnEl) {
-    const m = byId("commentModal");
-    if (!m) return;
+function openCommentModal(postId, title, btnEl) {
+  const m = byId("commentModal");
+  if (!m) return;
 
-    currentCommentPostId = String(postId || "");
-    currentCommentBtn = btnEl || null;
+  // ✅ 重要：第一次打開留言時才綁事件（因為這時候 DOM 一定已經存在）
+  if (m.dataset.bound !== "1") {
+    m.dataset.bound = "1";
 
-    const t = byId("commentModalTitle");
-    if (t) t.textContent = title ? `留言｜${title}` : "留言";
+    byId("commentModalClose")?.addEventListener("click", closeCommentModal);
+    qs("#commentModal .mbModalBackdrop")?.addEventListener("click", closeCommentModal);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeCommentModal(); });
 
-    m.classList.add("is-open");
-    m.setAttribute("aria-hidden", "false");
-    applyCommentRoleLock();
-
-    const wrap = byId("commentList");
-    const cached = COMMENT_CACHE.get(currentCommentPostId);
-    const fresh = cached && (Date.now() - cached.at < CACHE_TTL_MS);
-
-    if (cached?.rows?.length) renderComments(cached.rows);
-    else if (wrap) wrap.innerHTML = `<div class="muted">載入留言中…</div>`;
-
-    requestAnimationFrame(() => {
-      refreshComments(!fresh).catch(() => {
-        if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
-      });
-    });
+    byId("commentForm")?.addEventListener("submit", onCommentSubmit_);
   }
+
+  currentCommentPostId = String(postId || "");
+  currentCommentBtn = btnEl || null;
+
+  const t = byId("commentModalTitle");
+  if (t) t.textContent = title ? `留言｜${title}` : "留言";
+
+  m.classList.add("is-open");
+  m.setAttribute("aria-hidden", "false");
+  applyCommentRoleLock();
+
+  const wrap = byId("commentList");
+  const cached = COMMENT_CACHE.get(currentCommentPostId);
+  const fresh = cached && (Date.now() - cached.at < CACHE_TTL_MS);
+
+  if (cached?.rows?.length) renderComments(cached.rows);
+  else if (wrap) wrap.innerHTML = `<div class="muted">載入留言中…</div>`;
+
+  requestAnimationFrame(() => {
+    refreshComments(!fresh).catch(() => {
+      if (wrap) wrap.innerHTML = `<div class="muted">留言載入失敗</div>`;
+    });
+  });
+}
 
   function closeCommentModal() {
     const m = byId("commentModal");
