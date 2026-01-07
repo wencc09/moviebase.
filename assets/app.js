@@ -272,27 +272,40 @@ function initGoogle(retry = 0) {
   }
 
   google.accounts.id.initialize({
-    client_id: CONFIG.GOOGLE_CLIENT_ID,
-    callback: async (resp) => {
-      try {
-        const idToken = resp?.credential || "";
-        if (!idToken) throw new Error("no credential from GIS");
+     client_id: CONFIG.GOOGLE_CLIENT_ID,
+     callback: async (resp) => {
+       try {
+         const idToken = resp?.credential;
+         if (!idToken) throw new Error("No credential");
+   
+         const user = await verifyMe(idToken);
+         setModeUser(user);
+   
+         // ✅ 登入成功後：如果 entry.js 有設定「登入後要去的頁面」，就照那個跳
+         const next = localStorage.getItem("mb_after_auth_url");
+         if (next) {
+           localStorage.removeItem("mb_after_auth_url");
+           window.location.href = next;   // 例如 app.html#lobby
+           return;
+         }
+   
+         // ✅ 保底：如果你現在還在入口頁（不是 app.html），就跳主頁
+         if (!location.href.includes("app.html")) {
+           window.location.href = "app.html#lobby";
+           return;
+         }
+   
+         closeLoginModal();
+         toast("登入成功");
+       } catch (e) {
+         console.warn(e);
+         toast("登入失敗，請重試");
+         // 視你的 UI：要不要自動回到登入 modal
+         openLoginModal?.({ reset: false });
+       }
+     }
+   });
 
-        const user = await verifyMe(idToken);
-        setModeUser(user);
-
-        closeLoginModal();
-        toast("登入成功");
-         
-         
-
-      } catch (e) {
-        console.error(e);
-        setModeGuest();
-        toast(`登入失敗：${String(e.message || e)}`.slice(0, 120));
-      }
-    }
-  });
 
   const gsi = byId("gsiBtn");
   if (gsi) {
